@@ -1,0 +1,15 @@
+'use client';
+import {useState} from 'react';
+export default function LocationMap({item='Bag'}){
+ const [zoom,setZoom]=useState(false);const airport=item==='Luggage';const place=airport?'Terminal A · Baggage claim':item==='Keys'?'Campus library':'Campus café';const point=airport?[655,260]:item==='Keys'?[310,160]:[620,300];
+ return <div className="illustrated-map"><div className="map-heading"><div><span>FIND YOUR EVERYDAY</span><strong>{item} <small>· Last reported location</small></strong></div><button onClick={()=>setZoom(!zoom)} aria-label={zoom?'Zoom out map':'Zoom in map'}>{zoom?'−':'+'}</button></div><svg viewBox={zoom?`${point[0]-190} ${point[1]-130} 380 260`:'0 0 960 480'} role="img" aria-label={`Illustrative map showing ${item} at ${place}`}>
+ <rect width="960" height="480" fill="#eaf0e8"/>
+ <path d="M0 380 Q230 250 470 405 T980 335" fill="none" stroke="#b4dbe3" strokeWidth="65"/>
+ <g fill="#d0e2c2"><rect x="30" y="35" width="190" height="210" rx="28"/><rect x="720" y="45" width="210" height="155" rx="30"/><rect x="40" y="390" width="220" height="70" rx="25"/></g>
+ <g fill="none" stroke="#fff" strokeWidth="29"><path d="M0 280H960M250 0V480M490 0V480M710 0V480M0 80H960"/><path d="M80 0L880 480"/></g>
+ <g fill="none" stroke="#d6dcd6" strokeWidth="2"><path d="M0 280H960M250 0V480M490 0V480M710 0V480"/></g>
+ {airport?<g><rect x="310" y="110" width="340" height="125" rx="14" fill="#c3d4e1"/><rect x="570" y="280" width="110" height="65" rx="10" fill="#a7c4d8"/><path d="M340 165H620" stroke="#fff" strokeWidth="20"/><text x="475" y="143" textAnchor="middle">TERMINAL A</text><text x="626" y="331" textAnchor="middle">ARRIVALS</text><rect x="760" y="240" width="170" height="150" rx="12" fill="#d3d8db"/><text x="845" y="320" textAnchor="middle">PARKING</text></g>:<g><rect x="292" y="108" width="150" height="116" rx="14" fill="#c8d5e5"/><text x="367" y="205" textAnchor="middle">LIBRARY</text><rect x="550" y="316" width="132" height="65" rx="12" fill="#e8c8a4"/><text x="615" y="359" textAnchor="middle">CAFÉ</text><rect x="550" y="120" width="120" height="100" rx="14" fill="#d7cedd"/><text x="610" y="179" textAnchor="middle">LECTURE HALL</text><text x="115" y="135" textAnchor="middle">CAMPUS PARK</text><text x="810" y="130" textAnchor="middle">GARDENS</text></g>}
+ <g transform={`translate(${point[0]} ${point[1]})`}><circle r="46" fill="#008a4920"/><circle r="29" fill="#008a4920"/><path d="M0 9C-35-20-22-46 0-46S35-20 0 9" fill="#008a49" stroke="white" strokeWidth="4"/><circle cy="-24" r="7" fill="white"/></g>
+ <circle cx="185" cy="280" r="12" fill="#4285f4" stroke="white" strokeWidth="4"/><text x="185" y="311" textAnchor="middle">YOU · EXAMPLE</text>
+ </svg><div className="map-location-card"><span className="map-pin-dot"/><div><strong>{place}</strong><p>{item} · Sample location update</p></div><span className="map-status-pill">Last seen</span></div><p className="map-sample-note">Illustrative map · not live tracking · location updates may be delayed</p></div>
+}

@@ -81,3 +81,12 @@ QR destination updated to https://ugreen.seladevs.my. Source PNG decoded and ver
 
 
 The finding demo now contains 16 manually advanced story moments across home/keys, café/bag, and terminal/luggage scenarios. Space advances or restarts; Previous moment and scenario shortcuts support rehearsal. Animated camera framing can be overridden by dragging. Phone and sample map inserts accompany written dialogue; no synthetic speech is played. Uploaded tracker audio plays only during sound-search moments. Reduced motion skips camera interpolation and walking animation. All 16 steps and manual hold were browser-checked without page errors.
+
+
+Latest environment update: keys use a home entryway with console table and door; bag uses a café with service counter, coffee machine and separate seating; luggage uses a glass-walled airport baggage claim with carousel, seats and kiosk. All map views now use a flat SVG illustration with location card and zoom control, including the dedicated map slide and story inserts. Map locations are fictional examples.
+
+
+The iOS and Android connection slides, plus the demo app insert, now use responsive 2D HTML/SVG visualizations with official app icons. The Connect tracker interaction updates the status and connection dots; these views no longer render a 3D canvas.
+
+
+Ending update: 25 slides. Space or Next slide at the final luggage moment continues to the next presentation slide; Reset remains available in demo details. The final Thank you slide credits hzqfarhan with a CSS 3D tilt card linking to https://github.com/hzqfarhan. Reduced motion disables tilt. Verified demo exit, link destination, and desktop/mobile layouts.

@@ -1,0 +1,11 @@
+'use client';
+export default function EcosystemVisual({platform='ios',item='Keys',paired=false}){
+ const ios=platform==='ios',name=ios?'Apple Find My':'Google Find Hub';
+ return <div className={'ecosystem-visual '+(paired?'is-connected':'')} aria-label={`${name} connection illustration`}>
+ <div className="connection-diagram">
+ <div className="connection-node tracker-node"><span className="connection-kicker">YOUR EVERYDAY ITEM</span><svg viewBox="0 0 180 160" role="img" aria-label="Flat FineTrack tracker illustration"><path d="M30 130V37Q30 16 51 16H132Q150 16 150 35V126Q150 145 131 145H48Q30 145 30 130Z M41 52V36Q41 27 52 27H69Z" fill="#303b3c" fillRule="evenodd"/><path d="M43 69L80 29H129Q139 29 139 40V124Q139 133 129 133H53Q43 133 43 123Z" fill="#677185"/><circle cx="64" cy="111" r="11" fill="none" stroke="#d4dce2" strokeWidth="3"/><text x="106" y="55" textAnchor="middle" fontSize="10" fontFamily="Arial" fontWeight="700" fill="#142121">UGREEN</text></svg><strong>FineTrack Duo</strong><span>{item} · Bluetooth item finder</span></div>
+ <div className="connection-link" aria-hidden="true"><i/><i/><i/><span>{paired?'CONNECTED':'READY TO PAIR'}</span></div>
+ <div className="connection-node app-node"><div className="app-identity"><img src={ios?'/find-my.png':'/find-hub.png'} alt={name+' icon'} width="72" height="72"/><div><span className="connection-kicker">{ios?'iOS':'ANDROID'}</span><h2>{name}</h2></div></div><div className="connection-status" role="status"><span className="status-circle">{paired?'✓':'+'}</span><div><strong>{paired?'Your tracker is connected':'Add your tracker'}</strong><p>{paired?`${item} is ready in your finding app.`:'Use the connection button to show the next step.'}</p></div></div><div className="app-feature-row"><span>⌖<small>Check location</small></span><span>♫<small>Play sound nearby</small></span></div><span className="visual-ui-note">Simplified presentation illustration</span></div>
+ </div><div className="connection-process"><span><b>1</b> Choose your platform</span><span><b>2</b> Pair the tracker</span><span><b>3</b> Find your belongings</span></div><p className="connection-footnote">One finding network at a time · Location updates depend on participating devices.</p>
+ </div>
+}
