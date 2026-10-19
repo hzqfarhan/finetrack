@@ -10,6 +10,7 @@ create table if not exists public."ETC_sessions" (
  remote_seen timestamptz,
  expires_at timestamptz not null default now() + interval '8 hours'
 );
+alter table public."ETC_sessions" add column if not exists orbit jsonb;
 create table if not exists public."ETC_commands" (
  id uuid primary key,
  session_id uuid not null references public."ETC_sessions"(id) on delete cascade,
@@ -49,9 +50,19 @@ begin
  select * into s from public."ETC_sessions" where id=p_room for update;
  if not found or s.expires_at<now() then return jsonb_build_object('ended',true); end if;
  if p_key is null or (p_action in ('host','end') and p_key<>s.host_key)
-  or (p_action in ('read','command') and p_key<>s.control_key)
-  or p_action is null or p_action not in ('host','end','read','command') then raise exception 'Invalid pairing credentials'; end if;
- if p_action='end' then
+  or (p_action in ('read','command','orbit') and p_key<>s.control_key)
+  or p_action is null or p_action not in ('host','end','read','command','orbit') then raise exception 'Invalid pairing credentials'; end if;
+ if p_action='orbit' then
+  if s.host_seen<now()-interval '8 seconds' then raise exception 'Presentation offline'; end if;
+  if p_state is null or jsonb_typeof(p_state)<>'object' or octet_length(p_state::text)>500
+   or jsonb_typeof(p_state->'yaw') is distinct from 'number' or jsonb_typeof(p_state->'pitch') is distinct from 'number'
+   or jsonb_typeof(p_state->'slide') is distinct from 'number'
+   or abs((p_state->>'yaw')::numeric)>360 or abs((p_state->>'pitch')::numeric)>80
+   or p_id is null then raise exception 'Invalid orbit'; end if;
+  if p_state->'slide' is distinct from s.state->'slide' then return jsonb_build_object('ignored',true); end if;
+  update public."ETC_sessions" set orbit=p_state||jsonb_build_object('id',p_id),remote_seen=now() where id=p_room;
+  return jsonb_build_object('queued',true);
+ elsif p_action='end' then
   delete from public."ETC_sessions" where id=p_room;
   return jsonb_build_object('ended',true);
  elsif p_action='host' then
@@ -61,7 +72,7 @@ begin
   delete from public."ETC_commands" where session_id=p_room and created_at<now()-interval '30 seconds';
   select coalesce(jsonb_agg(jsonb_build_object('id',id,'command',command) order by created_at),'[]'::jsonb) into result
    from public."ETC_commands" where session_id=p_room and not acknowledged and created_at>now()-interval '4 seconds';
-  return jsonb_build_object('commands',result,'remoteOnline',coalesce(s.remote_seen>now()-interval '8 seconds',false));
+  return jsonb_build_object('orbit',case when s.orbit->'slide'=p_state->'slide' then s.orbit else null end,'commands',result,'remoteOnline',coalesce(s.remote_seen>now()-interval '8 seconds',false));
  elsif p_action='read' then
   update public."ETC_sessions" set remote_seen=now() where id=p_room;
   return jsonb_build_object('state',s.state,'online',s.host_seen>now()-interval '8 seconds',
@@ -77,3 +88,36 @@ begin
 end $$;
 revoke all on function public."ETC_remote"(text,uuid,uuid,jsonb,text,uuid,uuid[]) from public;
 grant execute on function public."ETC_remote"(text,uuid,uuid,jsonb,text,uuid,uuid[]) to anon,authenticated;
+
+
+-- One live broadcast selected only after server-side password verification.
+create table if not exists public."ETC_broadcast" (
+ id integer primary key check(id=1),
+ session_id uuid references public."ETC_sessions"(id) on delete set null
+);
+alter table public."ETC_broadcast" enable row level security;
+revoke all on public."ETC_broadcast" from anon,authenticated;
+insert into public."ETC_broadcast"(id) values(1) on conflict do nothing;
+create or replace function public."ETC_start_live"() returns jsonb
+language plpgsql security definer set search_path='' as $$
+declare s public."ETC_sessions"; chosen uuid;
+begin
+ select session_id into chosen from public."ETC_broadcast" where id=1 for update;
+ select * into s from public."ETC_sessions" where id=chosen and host_seen>now()-interval '8 seconds' and expires_at>now();
+ if not found then
+  select * into s from public."ETC_sessions" where host_seen>now()-interval '8 seconds' and expires_at>now() order by expires_at,id limit 1;
+ end if;
+ if s.id is null then return jsonb_build_object('waiting',true); end if;
+ update public."ETC_broadcast" set session_id=s.id where id=1;
+ return jsonb_build_object('room',s.id,'key',s.control_key);
+end $$;
+revoke all on function public."ETC_start_live"() from public;
+grant execute on function public."ETC_start_live"() to service_role;
+create or replace function public."ETC_audience"() returns jsonb
+language sql security definer set search_path='' as $$
+ select coalesce((select jsonb_build_object('room',s.id,'state',s.state - 'notes' - 'previews','online',s.host_seen>now()-interval '8 seconds')
+ from public."ETC_broadcast" b join public."ETC_sessions" s on s.id=b.session_id
+ where b.id=1 and s.expires_at>now()),'{"online":false}'::jsonb);
+$$;
+revoke all on function public."ETC_audience"() from public;
+grant execute on function public."ETC_audience"() to anon,authenticated;

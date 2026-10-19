@@ -82,3 +82,9 @@ Effects render in a separate layer attached to the page body, above the slide, c
 
 ## Globe trackpad
 Rerun `supabase/ETC_remote.sql` to enable the remote's Globe trackpad. Drag horizontally to orbit the product and vertically to tilt (limited to 80 degrees). Reset angle returns the camera to a straight-on view. Rotation stops auto-spin. The trackpad supports touch, mouse and arrow keys, and is disabled on non-model slides and the fixed port close-up. Position updates keep only the latest angle, separate from the slide command queue; the host polls every 150 ms, so response depends on network speed. The phone globe is a control indicator, not a live 3D preview.
+
+
+## Live audience following
+Rerun `supabase/ETC_remote.sql` and redeploy. Open the main presentation first, then sign into the password remote: this selects the earliest-opened online presentation and starts the shared broadcast. Subsequent remote sign-ins reuse that active broadcast. Share the ordinary presentation URL with viewers. Viewers follow slide, demo and effect updates automatically; **Leave live session** switches to independent browsing, and **Join live session** catches up. Manually changing slides also leaves following. The choice is saved for the current browser tab. If the main screen closes, following waits; open a presentation and sign into the remote again to select a new source.
+
+Audience reads expose presentation state only, never controller keys or speaker notes. The main presentation still must stay open to execute remote commands. Audio remains subject to each viewer browser's autoplay permissions; uploaded local demo audio is not distributed. Video playback is approximate rather than frame-synchronized.

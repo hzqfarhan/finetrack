@@ -10,11 +10,11 @@ test('password sign-in rejects missing and incorrect credentials before database
 });
 test('password sign-in selects a single live presentation and returns only controller credentials',async()=>{
  const result=await login(request('test-password'),env,async(url,options)=>{
- assert.equal(options.headers.apikey,'server-secret');assert.ok(url.searchParams.get('host_seen').startsWith('gt.'));
- return Response.json([{id:'room',control_key:'controller'}]);
+ assert.equal(options.headers.apikey,'server-secret');assert.equal(url.pathname,'/rest/v1/rpc/ETC_start_live');assert.equal(options.method,'POST');
+ return Response.json({room:'room',key:'controller'});
  });
  assert.deepEqual(await result.json(),{room:'room',key:'controller'});assert.equal(result.headers.get('Cache-Control'),'no-store');
- for(const rows of [[],[{id:'a'},{id:'b'}]])assert.equal((await login(request('test-password'),env,async()=>Response.json(rows))).status,409);
+ for(const rows of [{waiting:true}])assert.equal((await login(request('test-password'),env,async()=>Response.json(rows))).status,409);
  assert.equal((await login(request('test-password'),env,async()=>{throw new Error('secret')})).status,502);
 });
 test('green key removes green and preserves red and dark pixels',()=>{

@@ -3,9 +3,9 @@ import {useEffect,useRef,useState} from 'react';
 
 const url=process.env.NEXT_PUBLIC_ETC_SUPABASE_URL;
 const apiKey=process.env.NEXT_PUBLIC_ETC_SUPABASE_PUBLISHABLE_KEY;
-export async function remoteRequest(parameters){
+export async function remoteRequest(parameters,rpc='ETC_remote'){
  if(!url||!apiKey)throw new Error('Add the ETC Supabase URL and publishable key to your environment, then restart or rebuild.');
- const response=await fetch(`${url.replace(/\/$/,'')}/rest/v1/rpc/ETC_remote`,{method:'POST',headers:{apikey:apiKey,'Content-Type':'application/json'},body:JSON.stringify(parameters),signal:AbortSignal.timeout(5000),cache:'no-store'});
+ const response=await fetch(`${url.replace(/\/$/,'')}/rest/v1/rpc/${rpc}`,{method:'POST',headers:{apikey:apiKey,'Content-Type':'application/json'},body:JSON.stringify(parameters),signal:AbortSignal.timeout(5000),cache:'no-store'});
  if(!response.ok){let data;try{data=await response.json()}catch{}throw new Error(data?.message||'Cannot reach Supabase. Check your connection and ETC database setup.')}
  return response.json();
 }

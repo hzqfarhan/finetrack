@@ -8,7 +8,7 @@ import {PGlite} from '@electric-sql/pglite';
 test('ETC pairing, permissions, command acknowledgement, expiry and session isolation',async()=>{
  const db=new PGlite();
  try{
-  await db.exec('create role anon; create role authenticated;');
+  await db.exec('create role anon; create role authenticated; create role service_role;');
   const sql=await readFile(new URL('../supabase/ETC_remote.sql',import.meta.url),'utf8');
   await db.exec(sql);await db.exec(sql); // Setup is safe to run again.
   const rpc=async(action,room=null,key=null,state={},command=null,id=null,ack=[])=>{
@@ -65,6 +65,20 @@ test('ETC pairing, permissions, command acknowledgement, expiry and session isol
   await db.query('update public."ETC_sessions" set host_seen=now()-interval \'10 seconds\' where id=$1',[a.room]);
   assert.equal((await rpc('read',a.room,a.key)).online,false);
   await assert.rejects(rpc('command',a.room,a.key,{},'next',randomUUID()),/Presentation offline/);
+  await rpc('host',a.room,a.hostKey,{slide:4,notes:'private cue',previews:{secret:true},effect:{confetti:1}});
+  await db.query('update public."ETC_sessions" set expires_at=now()+interval \'2 hours\' where id=$1',[a.room]);
+  const start=async()=> (await db.query('select public."ETC_start_live"() as value')).rows[0].value;
+  const audience=async()=> (await db.query('select public."ETC_audience"() as value')).rows[0].value;
+  assert.equal((await start()).room,a.room);
+  assert.equal((await start()).room,a.room);
+  await db.exec('set role anon');
+  await assert.rejects(start(),/permission denied/);
+  const publicState=await audience();assert.equal(publicState.state.slide,4);
+  assert.equal(publicState.state.notes,undefined);assert.equal(publicState.state.previews,undefined);
+  assert.equal(publicState.key,undefined);assert.equal(publicState.hostKey,undefined);
+  await assert.rejects(db.query('select * from public."ETC_broadcast"'),/permission denied/);
+  await db.exec('reset role');
+  await rpc('host',a.room,a.hostKey,{slide:5});assert.equal((await audience()).state.slide,5);
   await rpc('end',a.room,a.hostKey);assert.equal((await rpc('read',a.room,a.key)).ended,true);
   assert.equal((await db.query('select count(*)::int as n from public."ETC_commands" where session_id=$1',[a.room])).rows[0].n,0);
   await db.query('update public."ETC_sessions" set expires_at=now()-interval \'1 second\' where id=$1',[b.room]);

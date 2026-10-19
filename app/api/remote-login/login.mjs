@@ -11,13 +11,12 @@ export async function login(request,env=process.env,fetcher=fetch){
  try{input=await request.json()}catch{return reply({error:'Enter your remote password.'},400)}
  if(typeof input?.password!=='string'||input.password.length>256||!timingSafeEqual(digest(input.password),digest(password)))return reply({error:'Incorrect remote password.'},401);
  try{
-  const endpoint=new URL('/rest/v1/ETC_sessions',url);
-  endpoint.search=new URLSearchParams({select:'id,control_key',host_seen:`gt.${new Date(Date.now()-8000).toISOString()}`,expires_at:`gt.${new Date().toISOString()}`,limit:'2'}).toString();
-  const response=await fetcher(endpoint,{headers:{apikey:key,Authorization:`Bearer ${key}`},cache:'no-store',signal:AbortSignal.timeout(5000)});
+  const endpoint=new URL('/rest/v1/rpc/ETC_start_live',url);
+  const response=await fetcher(endpoint,{method:'POST',headers:{apikey:key,Authorization:`Bearer ${key}`,'Content-Type':'application/json'},body:'{}',cache:'no-store',signal:AbortSignal.timeout(5000)});
   if(!response.ok)throw new Error();
-  const sessions=await response.json();
-  if(!sessions.length)return reply({error:'Open the presentation on your main screen, then try again.'},409);
-  if(sessions.length>1)return reply({error:'More than one presentation is active. Close the extra presentation tab, then try again.'},409);
-  return reply({room:sessions[0].id,key:sessions[0].control_key});
+  const session=await response.json();
+  if(session.waiting)return reply({error:'Open your main presentation screen first, then connect.'},409);
+  if(!session.room||!session.key)throw new Error();
+  return reply({room:session.room,key:session.key});
  }catch{return reply({error:'Cannot connect to the presentation. Check the server Supabase settings.'},502)}
 }
