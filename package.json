@@ -1,1 +1,22 @@
-{"name":"finetrack-presentation","version":"1.0.0","private":true,"scripts":{"dev":"next dev --hostname 127.0.0.1","build":"next build --webpack","start":"next start"},"dependencies":{"next":"latest","react":"latest","react-dom":"latest","three":"latest"}}
+{
+  "name": "finetrack-presentation",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --hostname 127.0.0.1",
+    "build": "next build --webpack",
+    "start": "next start",
+    "dev:lan": "next dev --hostname 0.0.0.0",
+    "test:remote": "node --test tests/ETC-remote.test.mjs tests/ETC-preview.test.mjs"
+  },
+  "dependencies": {
+    "next": "latest",
+    "qrcode": "^1.5.4",
+    "react": "latest",
+    "react-dom": "latest",
+    "three": "latest"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.10"
+  }
+}

@@ -90,3 +90,11 @@ The iOS and Android connection slides, plus the demo app insert, now use respons
 
 
 Ending update: 25 slides. Space or Next slide at the final luggage moment continues to the next presentation slide; Reset remains available in demo details. The final Thank you slide credits hzqfarhan with a CSS 3D tilt card linking to https://github.com/hzqfarhan. Reduced motion disables tilt. Verified demo exit, link destination, and desktop/mobile layouts.
+
+
+Demo navigation update: the main footer Next button advances each of the 16 finding-demo moments, then continues to slide 23. Separate demo advance buttons and Space prompts have been removed. Right arrow, PageDown and Space use the same forward action.
+
+
+## Phone remote
+
+The phone remote supports swipe/Next/Previous navigation, demo moments, confetti, curtain, spotlight and blank-screen controls. It uses Supabase HTTPS polling (no WebSocket) and the ETC_ database namespace. See [REMOTE-SETUP.md](REMOTE-SETUP.md) for Vercel and etcremote.seladevs.my setup. Add your public settings from .env.example and run supabase/ETC_remote.sql before pairing.

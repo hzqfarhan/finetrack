@@ -1,12 +1,17 @@
 'use client';
 import {useState,useEffect,useRef} from 'react';
+import {presentationPreviews} from './presentation-preview.mjs';
 import dynamic from 'next/dynamic';
 import LocationMap from './location-map';
-import RoomDemo,{DemoControls,useRoomDemo} from './room-demo';
+import RoomDemo,{DemoControls,useRoomDemo,demoSteps} from './room-demo';
 const Model=dynamic(()=>import('./model'),{ssr:false,loading:()=> <div className="loading">Loading the 3D model…</div>});
 import EcosystemVisual from './ecosystem-visual';
 import ThankYouCard from './thank-you-card';
 import AmbientShapes from './ambient-shapes';
+import Remote from './remote/page';
+import PairRemote from './pair-remote';
+import PresentationEffects from './presentation-effects';
+import {useRemoteConnection} from './remote-connection';
 const baseSlides=[
  {label:'Meet FineTrack',tag:'01 / INTRODUCTION',title:<>Small tag. Big <em>relief.</em></>,text:'Your keys. Your bag. Your everyday, easier to find.',chips:['UGREEN','FineTrack Duo'],time:'1:00',person:'Speaker 1',notes:'Open with a question: “Have you ever been ready to leave, only to realise your keys are missing?” Pause for the audience. Introduce yourselves and the FineTrack Duo. Explain that you are presenting a lifestyle device for people who misplace everyday belongings. Give a short personal example, then preview the definition, parts, operation and benefits.',bridge:'“Let’s begin with what this little device actually is.”'},
  {label:'What it is',tag:'02 / FORMAL & EXTENDED DEFINITION',title:<>An everyday <em>item finder.</em></>,text:'A rechargeable Bluetooth tracking tag that helps you locate personal belongings using a compatible phone and finding network.',chips:['Apple Find My','Google Find Hub'],detail:'Choose one platform at a time. It is not a continuous GPS tracker.',time:'1:30',person:'Speaker 1',notes:'Use the definition on screen, then unpack it: rechargeable describes its power source, Bluetooth describes its short-range wireless communication, and tracking tag identifies its class. Explain the difference between locating an item nearby and receiving a location update through a wider finding network. Compare the idea to asking a community to help find something, without promising constant updates. Give examples of suitable belongings: a keyring, a bag or luggage.',bridge:'“Now that we know what it is, let’s take a closer look at its parts.”'},
@@ -33,7 +38,7 @@ const slides=[{...baseSlides[0],scene:'welcome',title:<>FineTrack <em>Duo.</em><
  extra('Connect to iPhone','ios',<>Your iPhone. <em>Your everyday items.</em></>,'Pair with Apple Find My to keep compatible belongings in your finding app.'),
  extra('Connect to Android','android',<>Android, <em>connected.</em></>,'Use Google Find Hub with a compatible Android phone. Choose one finding network at a time.'),
  extra('The tracking map','map',<>A location. <em>A place to start.</em></>,'Select an item to explore its sample last-reported location. Nearby, use sound to help find it.'),
- extra('Finding demo','room',<>Hear it. <em>Find it.</em></>,'Three everyday stories. Press Space to reveal each moment, change the camera, and follow the search.'),baseSlides[4],{...baseSlides[5],scene:'conclusion'},extra('Thank you','thanks',<>Thank <em>you.</em></>,'For listening, exploring, and finding your everyday.')
+ extra('Finding demo','room',<>Hear it. <em>Find it.</em></>,'Three everyday stories. Use Next below to follow each moment of the search.'),baseSlides[4],{...baseSlides[5],scene:'conclusion'},extra('Thank you','thanks',<>Thank <em>you.</em></>,'For listening, exploring, and finding your everyday.')
 ];
 const parts={body:['Protective casing','Houses and protects the internal electronics.'],loop:['Attachment opening','Connects the tag to a keyring or strap.'],button:['LED indicator','The illuminated ring provides a visible status indication. Its blinking here is a presentation demonstration.'],port:['USB-C charging port','Recharges the internal battery. A dust plug protects the port.']};
 const components=[
@@ -43,19 +48,33 @@ const components=[
  {id:'antenna',name:'Bluetooth antenna',tag:'04 / COMMUNICATION',title:'A small wireless connection.',text:'The antenna sends and receives Bluetooth radio signals so the tracker can communicate with compatible nearby devices.',cue:'“The antenna provides the wireless link. The wider finding network helps report the item’s location.”'},
  {id:'speaker',name:'Sounder & rear cover',tag:'05 / SOUND',title:'Listen. Then find it.',text:'The sounder turns an electrical signal into an audible alert. The rear casing supports and protects the assembly.',cue:'“Finally, the sounder helps us locate the item nearby by listening for its alert.”'}
 ];
-export default function Page(){
+const headingText=node=>typeof node==='string'?node:Array.isArray(node)?node.map(headingText).join(''):node?.props?headingText(node.props.children):'';
+const previewSlides=slides.map(slide=>({...slide,heading:headingText(slide.title)}));
+const emptyEffects={curtain:false,blank:false,spotlight:false,confetti:0,question:false};
+function Presentation(){
  const [step,setStep]=useState(0),[notes,setNotes]=useState(false),[spin,setSpin]=useState(false),[part,setPart]=useState(''),[reset,setReset]=useState(0),[full,setFull]=useState(false),[colour,setColour]=useState('Graphite'),[front,setFront]=useState(false),[theme,setTheme]=useState('light'),[separation,setSeparation]=useState(1),[component,setComponent]=useState('board'),[notice,setNotice]=useState('');
  const [paired,setPaired]=useState(false),[mapItem,setMapItem]=useState('Keys');
+ const [remoteEnabled,setRemoteEnabled]=useState(false),[pairOpen,setPairOpen]=useState(false),[effect,setEffect]=useState(emptyEffects);
  const s=slides[step],exploded=s.scene==='layers',demo=useRoomDemo(s.scene==='room',()=>setStep(n=>Math.min(slides.length-1,n+1))),item=components.find(c=>c.id===component)||components[2];
- const live=useRef(null);live.current={scene:s.scene,demo};
  const go=n=>{setStep(Math.max(0,Math.min(slides.length-1,n)));setPart('');};
+ const advance=()=>{if(s.scene==='room'){demo.advance();return}go(step===slides.length-1?0:step+1)};
+ const previous=()=>{if(s.scene==='room'&&demo.phase>0){demo.jump(demo.phase-1);return}go(step-1)};
+ const handleRemote=command=>{
+  if(command==='next')advance();
+  else if(command==='previous')previous();
+  else if(command.startsWith('highlight-')){const selected=command.slice(10);if(['port','button','loop','body'].includes(selected)){go(slides.findIndex(x=>x.scene==='parts'));setPart(selected);setFront(false);setSpin(false);setEffect(emptyEffects)}}
+ else if(command==='clear'){setPart('');setEffect(emptyEffects)}
+ else setEffect(old=>command==='clear'?emptyEffects:command==='confetti'?{...old,confetti:old.confetti+1}:command==='curtain-close'?{...old,curtain:true}:command==='curtain-open'?{...old,curtain:false}:command==='blank'?{...old,blank:!old.blank}:command==='spotlight'?{...old,spotlight:!old.spotlight}:command==='question'?{...old,question:!old.question}:old);
+ };
+ const remote=useRemoteConnection({enabled:remoteEnabled,role:'host',onCommand:handleRemote,state:{slide:step+1,total:slides.length,title:s.label,demo:s.scene==='room'?demo.phase+1:null,notes:s.notes,effect,part:parts[part]?.[0]||null,previews:presentationPreviews(previewSlides,step,demoSteps,demo.phase)}});
+ const live=useRef(null);live.current={advance,previous,pairOpen};
  useEffect(()=>{setPaired(false);setFront(false);setSpin(false);setColour(slides[step].colour||'Graphite');setSeparation(1)},[step]);
  useEffect(()=>{let saved;try{saved=localStorage.getItem('finetrack-theme-v2')}catch{}const initial=saved==='dark'||saved==='light'?saved:'light';setTheme(initial);document.documentElement.dataset.theme=initial;if(location.hash==='#inside')setStep(slides.findIndex(x=>x.scene==='layers'));},[]);
  const changeTheme=()=>{const next=theme==='light'?'dark':'light';setTheme(next);document.documentElement.dataset.theme=next;try{localStorage.setItem('finetrack-theme-v2',next)}catch{}};
  async function fullscreen(){try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen()}catch{setNotice('Fullscreen is unavailable in this browser.')}}
- useEffect(()=>{const key=e=>{if(e.key===' '&&live.current.scene==='room'&&!e.target.closest('a,input,select,textarea,summary')){e.preventDefault();if(!e.repeat)live.current.demo.advance();return}if(e.target.closest('a,input,select,textarea,summary')||(e.key===' '&&e.target.closest('button')))return;const next=['ArrowRight','PageDown',' '].includes(e.key),prev=['ArrowLeft','PageUp'].includes(e.key);if(next||prev){e.preventDefault();setStep(n=>Math.max(0,Math.min(slides.length-1,n+(next?1:-1))));setPart('')}if(e.key.toLowerCase()==='n')setNotes(n=>!n);if(e.key.toLowerCase()==='f')fullscreen();if(e.key==='Escape')setNotes(false)};const fs=()=>setFull(!!document.fullscreenElement);window.addEventListener('keydown',key);document.addEventListener('fullscreenchange',fs);return()=>{window.removeEventListener('keydown',key);document.removeEventListener('fullscreenchange',fs)}},[]);
+ useEffect(()=>{const key=e=>{if(live.current.pairOpen&&e.key!=='Escape')return;if(e.target.closest('a,input,select,textarea,summary')||(e.key===' '&&e.target.closest('button')))return;const next=['ArrowRight','PageDown',' '].includes(e.key),prev=['ArrowLeft','PageUp'].includes(e.key);if(next||prev){e.preventDefault();if(e.repeat)return;if(next)live.current.advance();else live.current.previous()}if(e.key.toLowerCase()==='n')setNotes(n=>!n);if(e.key.toLowerCase()==='f')fullscreen();if(e.key==='Escape'){setNotes(false);setPairOpen(false);setEffect(emptyEffects);setPart('')}};const fs=()=>setFull(!!document.fullscreenElement);window.addEventListener('keydown',key);document.addEventListener('fullscreenchange',fs);return()=>{window.removeEventListener('keydown',key);document.removeEventListener('fullscreenchange',fs)}},[]);
  return <main className="hero-deck" data-scene={s.scene||'single'}><AmbientShapes/>
- <header><div className="institution-brands"><a className="brand" href="#" onClick={e=>{e.preventDefault();go(0)}}>UGREEN</a><span className="brand-divider" aria-hidden="true"/><img className="uthm-logo" src="/uthm-logo.png" alt="UTHM — Universiti Tun Hussein Onn Malaysia" width="3508" height="1274"/></div><div className="top-actions"><button onClick={()=>go(1)} className="join-button">Join on your phone</button><button onClick={changeTheme} aria-label={'Switch to '+(theme==='light'?'dark':'light')+' mode'}>{theme==='light'?'◐':'☀'}</button><button aria-pressed={notes} onClick={()=>setNotes(!notes)}>Cues</button><button className="fullscreen" onClick={fullscreen}>{full?'Exit fullscreen':'Fullscreen'}</button></div></header>
+ <header><div className="institution-brands"><a className="brand" href="#" onClick={e=>{e.preventDefault();go(0)}}>UGREEN</a><span className="brand-divider" aria-hidden="true"/><img className="uthm-logo" src="/uthm-logo.png" alt="UTHM — Universiti Tun Hussein Onn Malaysia" width="3508" height="1274"/></div><div className="top-actions"><button className="remote-launch" onClick={()=>{setRemoteEnabled(true);setPairOpen(true)}}>{remote.count?'Remote connected':'Remote'}</button><button onClick={()=>go(1)} className="join-button">Join on your phone</button><button onClick={changeTheme} aria-label={'Switch to '+(theme==='light'?'dark':'light')+' mode'}>{theme==='light'?'◐':'☀'}</button><button aria-pressed={notes} onClick={()=>setNotes(!notes)}>Cues</button><button className="fullscreen" onClick={fullscreen}>{full?'Exit fullscreen':'Fullscreen'}</button></div></header>
  {notice&&<p className="notice" role="status">{notice}<button onClick={()=>setNotice('')}>Dismiss</button></p>}
  <section className="hero-slide" aria-label={s.label}>
  <div className="hero-copy" key={step} aria-live="polite"><div className="eyebrow">{s.scene==='welcome'?'THE EVERYDAY ESSENTIAL':s.label.toUpperCase()}</div><h1>{s.title}</h1><p className="lead">{s.text}</p>
@@ -68,7 +87,7 @@ export default function Page(){
  {s.scene==='layers'&&<div className="hero-layer-info"><strong>{item.name}</strong><span>{item.text}</span></div>}
  {s.benefits&&<div className="hero-benefits">{s.benefits.map(([a,b])=><div key={a}><strong>{a}</strong><span>{b}</span></div>)}</div>}
  {s.detail&&<p className="hero-detail">{s.detail}</p>}
- {s.scene==='room'&&<div className="hero-demo-controls"><button className="primary" onClick={demo.advance}>{demo.last?'Next slide':'Next step'} · Space</button><details><summary>Demo steps & sound recording</summary><DemoControls demo={demo}/></details></div>}
+ {s.scene==='room'&&<div className="hero-demo-controls"><details><summary>Demo steps & sound recording</summary><DemoControls demo={demo}/></details></div>}
  </div>
  <div className="hero-view" aria-label={s.scene==='qr'?'Join by QR code':'Interactive product viewer'}>
  {s.scene==='thanks'?<ThankYouCard/>:s.scene==='qr'?<div className="join-scene"><div className="qr-card"><img src="/join-qr.png" alt="QR code linking to https://ugreen.seladevs.my" width="592" height="592"/><a href="https://ugreen.seladevs.my" target="_blank" rel="noreferrer">ugreen.seladevs.my ↗</a></div><p>Open your camera. Scan. Explore.</p><small>You can follow the slides at your own pace.</small></div>:s.scene==='map'?<LocationMap item={mapItem}/>:['ios','android'].includes(s.scene)?<EcosystemVisual key={s.scene} platform={s.scene==='android'?'android':'ios'} map={s.scene==='map'} item={mapItem} paired={paired}/>:s.scene==='room'?<RoomDemo demo={demo}/>:<><div className="hero-orbit"/><div className="canvas-wrap"><Model sceneType={s.scene||'single'} slide={step} part={part} spin={spin} reset={reset} colour={colour} front={front} inside={exploded} separation={separation} selected={component} onSelect={setComponent}/></div>{s.scene==='welcome'&&<><div className="hero-wordmark" aria-hidden="true">FIND YOUR EVERYDAY.</div><div className="presenter-cards" aria-label="Presentation team">{[{name:'MUHAMMAD HAZIQ FARHAN BIN NORDIN',matric:'AI250128',photo:'/haziq-farhan.jpg',alt:'Haziq Farhan'},{name:'MUHAMMAD MUSYRIQUL AMIN BIN MHD SHAARI',matric:'AI250111',photo:'/musyriqul-amin.jpg',alt:'Musyriqul Amin'}].map((person,i)=><article className="presenter-card" key={person.matric}><img src={person.photo} alt={person.alt} width="1080" height="1350"/><div><span className="presenter-label">PRESENTER 0{i+1}</span><h2>{person.name}</h2><p>{person.matric}</p></div></article>)}</div></>}</>}
@@ -80,6 +99,15 @@ export default function Page(){
  </div>}
  </section>
  {notes&&<aside className="notes"><div><span>{s.person} · Speaking cues</span><button onClick={()=>setNotes(false)}>Close cues</button></div><p>{s.notes}</p><blockquote>{s.bridge}</blockquote><small>Cues are visible on this screen. Press N to hide them.</small></aside>}
- <footer className="hero-footer"><button aria-label="Previous slide" disabled={step===0} onClick={()=>go(step-1)}>← <span>Previous</span></button><div className="current-slide"><span>{String(step+1).padStart(2,'0')} / {String(slides.length).padStart(2,'0')}</span><strong>{s.label}</strong></div><button className="primary" aria-label={step===slides.length-1?'Restart presentation':'Next slide'} onClick={()=>go(step===slides.length-1?0:step+1)}><span>{step===slides.length-1?'Restart':'Next'}</span> →</button><div className="hero-progress" style={{'--progress':((step+1)/slides.length*100)+'%'}}/></footer>
+ <footer className="hero-footer"><button aria-label="Previous slide" disabled={step===0} onClick={previous}>← <span>Previous</span></button><div className="current-slide"><span>{String(step+1).padStart(2,'0')} / {String(slides.length).padStart(2,'0')}</span><strong>{s.label}</strong></div><button className="primary" aria-label={s.scene==='room'&&!demo.last?'Next demo step':step===slides.length-1?'Restart presentation':'Next slide'} onClick={advance}><span>{step===slides.length-1?'Restart':'Next'}</span> →</button><div className="hero-progress" style={{'--progress':((step+1)/slides.length*100)+'%'}}/></footer>
+ <PresentationEffects effect={effect}/>
+ {(effect.curtain||effect.blank||effect.spotlight||effect.question||part)&&<button className="clear-stage" onClick={()=>handleRemote('clear')}>Clear effects · Esc</button>}
+ {pairOpen&&<PairRemote remote={remote} onClose={()=>setPairOpen(false)} onStop={()=>{setRemoteEnabled(false);setPairOpen(false);handleRemote('clear')}}/>}
  </main>
+}
+export default function Page(){
+ const [remoteHost,setRemoteHost]=useState(null);
+ useEffect(()=>{let hostname='etcremote.seladevs.my';try{if(process.env.NEXT_PUBLIC_ETC_REMOTE_URL)hostname=new URL(process.env.NEXT_PUBLIC_ETC_REMOTE_URL).hostname}catch{}setRemoteHost(location.hostname===hostname)},[]);
+ if(remoteHost===null)return <div className="loading">Opening FineTrack…</div>;
+ return remoteHost?<Remote/>:<Presentation/>;
 }
