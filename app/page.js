@@ -65,6 +65,7 @@ function Presentation(){
  const previous=()=>{if(s.scene==='room'&&demo.phase>0&&audience.following&&!audience.isSource)audience.toggle();if(s.scene==='room'&&demo.phase>0){demo.jump(demo.phase-1);return}go(step-1)};
  const handleRemote=command=>{
   if(/^slide-(?:[1-9]|1[0-9]|2[0-5])$/.test(command)){setStep(Number(command.slice(6))-1);setPart('');setOrbit(null)}
+  else if(command==='theme-dark'||command==='theme-light')applyTheme(command.slice(6));
   else if(command==='audio-mute')setMasterMuted(true);
   else if(command==='audio-unmute')setMasterMuted(false);
   else if(command==='video-stop'){setEffect(old=>({...old,video:null}));setVideoError('')}
@@ -75,23 +76,25 @@ function Presentation(){
  else if(command==='clear'){setPart('');setEffect(emptyEffects)}
  else setEffect(old=>command==='clear'?emptyEffects:command==='confetti'?{...old,confetti:old.confetti+1}:command==='curtain-close'?{...old,curtain:true}:command==='curtain-open'?{...old,curtain:false}:command==='blank'?{...old,blank:!old.blank}:command==='spotlight'?{...old,spotlight:!old.spotlight}:command==='question'?{...old,question:!old.question}:old);
  };
- const remote=useRemoteConnection({enabled:true,role:'host',onCommand:handleRemote,onOrbit:value=>{if(canOrbit&&value.slide===step+1){setSpin(false);setOrbit(value)}},state:{partId:part,orbit,canOrbit,masterMuted,videoError,slide:step+1,total:slides.length,title:s.label,demo:s.scene==='room'?demo.phase+1:null,notes:s.notes,effect,part:parts[part]?.[0]||null,previews:presentationPreviews(previewSlides,step,demoSteps,demo.phase)}});
+ const remote=useRemoteConnection({enabled:true,role:'host',onCommand:handleRemote,onOrbit:value=>{if(canOrbit&&value.slide===step+1){setSpin(false);setOrbit(value)}},state:{theme,partId:part,orbit,canOrbit,masterMuted,videoError,slide:step+1,total:slides.length,title:s.label,demo:s.scene==='room'?demo.phase+1:null,notes:s.notes,effect,part:parts[part]?.[0]||null,previews:presentationPreviews(previewSlides,step,demoSteps,demo.phase)}});
  const audience=useLiveAudience({room:remote.pair?.room,onState:state=>{
   if(!Number.isInteger(state?.slide)||state.slide<1||state.slide>slides.length)return;
   setStep(state.slide-1);setPart(state.partId||'');setSpin(false);
   if(state.effect)setEffect(state.effect);
   if(state.orbit)setOrbit(state.orbit);
+  if(state.theme==='light'||state.theme==='dark')applyTheme(state.theme);
   if(typeof state.masterMuted==='boolean')setMasterMuted(state.masterMuted);
   if(state.demo&&state.demo-1!==demo.phase)demo.jump(Math.max(0,Math.min(demoSteps.length-1,state.demo-1)));
  }});
  const live=useRef(null);live.current={advance,previous};
  useEffect(()=>{setPaired(false);setFront(false);setSpin(false);setColour(slides[step].colour||'Graphite');setSeparation(1)},[step]);
  useEffect(()=>{let saved;try{saved=localStorage.getItem('finetrack-theme-v2')}catch{}const initial=saved==='dark'||saved==='light'?saved:'light';setTheme(initial);document.documentElement.dataset.theme=initial;if(location.hash==='#inside')setStep(slides.findIndex(x=>x.scene==='layers'));},[]);
- const changeTheme=()=>{const next=theme==='light'?'dark':'light';setTheme(next);document.documentElement.dataset.theme=next;try{localStorage.setItem('finetrack-theme-v2',next)}catch{}};
+ const applyTheme=next=>{setTheme(next);document.documentElement.dataset.theme=next;try{localStorage.setItem('finetrack-theme-v2',next)}catch{}};
+ const changeTheme=()=>applyTheme(theme==='light'?'dark':'light');
  async function fullscreen(){try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen()}catch{setNotice('Fullscreen is unavailable in this browser.')}}
  useEffect(()=>{const key=e=>{if(e.target.closest('a,input,select,textarea,summary')||(e.key===' '&&e.target.closest('button')))return;const next=['ArrowRight','PageDown',' '].includes(e.key),prev=['ArrowLeft','PageUp'].includes(e.key);if(next||prev){e.preventDefault();if(e.repeat)return;if(next)live.current.advance();else live.current.previous()}if(e.key.toLowerCase()==='n')setNotes(n=>!n);if(e.key.toLowerCase()==='f')fullscreen();if(e.key==='Escape'){setNotes(false);setEffect(emptyEffects);setPart('')}};const fs=()=>setFull(!!document.fullscreenElement);window.addEventListener('keydown',key);document.addEventListener('fullscreenchange',fs);return()=>{window.removeEventListener('keydown',key);document.removeEventListener('fullscreenchange',fs)}},[]);
  return <main className="hero-deck" data-scene={s.scene||'single'}><AmbientShapes/>
- <header><div className="institution-brands"><a className="brand" href="#" onClick={e=>{e.preventDefault();go(0)}}>UGREEN</a><span className="brand-divider" aria-hidden="true"/><img className="uthm-logo" src="/uthm-logo.png" alt="UTHM — Universiti Tun Hussein Onn Malaysia" width="3508" height="1274"/></div><div className="top-actions">{!audience.isSource&&<button className="live-session-toggle" aria-pressed={audience.following} onClick={audience.toggle}>{audience.following?(audience.online?'Leave live session':'Following live · Leave'):'Join live session'}</button>}<SoundToggle muted={masterMuted} onToggle={()=>setMasterMuted(value=>!value)}/><a className="effects-download" href="/greenscreen-effects.zip" download="FineTrack-Greenscreen-Effects.zip">Download effects ↓</a><button onClick={()=>go(1)} className="join-button">Join on your phone</button><button onClick={changeTheme} aria-label={'Switch to '+(theme==='light'?'dark':'light')+' mode'}>{theme==='light'?'◐':'☀'}</button><button aria-pressed={notes} onClick={()=>setNotes(!notes)}>Cues</button><button className="fullscreen" onClick={fullscreen}>{full?'Exit fullscreen':'Fullscreen'}</button></div></header>
+ <header><div className="institution-brands"><a className="brand" href="#" onClick={e=>{e.preventDefault();go(0)}}>UGREEN</a><span className="brand-divider" aria-hidden="true"/><img className="uthm-logo" src="/uthm-logo.png" alt="UTHM — Universiti Tun Hussein Onn Malaysia" width="3508" height="1274"/></div><div className="top-actions">{!audience.isSource&&<button className="live-session-toggle" aria-pressed={audience.following} onClick={audience.toggle}>{audience.following?(audience.online?'Leave live session':'Following live · Leave'):'Join live session'}</button>}<SoundToggle muted={masterMuted} onToggle={()=>setMasterMuted(value=>!value)}/><a className="effects-download" href="/greenscreen-effects.zip" download="FineTrack-Greenscreen-Effects.zip">Download effects ↓</a><button onClick={()=>go(1)} className="join-button">Join on your phone</button><button onClick={changeTheme} aria-label={'Switch to '+(theme==='light'?'dark':'light')+' mode'}>{theme==='light'?'◐ Dark mode':'☀ Light mode'}</button><button aria-pressed={notes} onClick={()=>setNotes(!notes)}>Cues</button><button className="fullscreen" onClick={fullscreen}>{full?'Exit fullscreen':'Fullscreen'}</button></div></header>
  {notice&&<p className="notice" role="status">{notice}<button onClick={()=>setNotice('')}>Dismiss</button></p>}
  <section className="hero-slide" aria-label={s.label}>
  <div className="hero-copy" key={step} aria-live="polite"><div className="eyebrow">{s.scene==='welcome'?'THE EVERYDAY ESSENTIAL':s.label.toUpperCase()}</div><h1>{s.title}</h1><p className="lead">{s.text}</p>

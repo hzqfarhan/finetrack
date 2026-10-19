@@ -26,5 +26,5 @@ export default function GreenScreenEffect({clip,muted,onDone,onError}){
   return()=>{cancelled=true;cancelAnimationFrame(frame);v.pause();v.removeAttribute('src');v.load()};
  },[clip]);
  const enableSound=()=>{const v=video.current;v.muted=false;v.play().then(()=>{setSoundBlocked(false);callbacks.current.onError('')}).catch(()=>setSoundBlocked(true))};
- return <><div className={`green-screen-effect ${fallback?'original-video':''}`}><video ref={video} muted={muted} playsInline preload="auto" onEnded={()=>callbacks.current.onDone()} onError={()=>callbacks.current.onError('This video could not load. Check the deployed asset or try an H.264 MP4 version.')}/><canvas ref={canvas}/></div>{soundBlocked&&!muted&&createPortal(<button className="enable-video-sound" onClick={enableSound}>Enable sound · Tap here</button>,document.body)}</>
+ return <><div className={`green-screen-effect ${fallback?'original-video':''}`}><video ref={video} muted={muted} playsInline preload="auto" onEnded={()=>callbacks.current.onDone()} onError={()=>callbacks.current.onError('This video could not load. Check the deployed asset or try an H.264 MP4 version.')}/><canvas ref={canvas}/></div>{soundBlocked&&!muted&&createPortal(<button className="enable-video-sound" onClick={enableSound}>Enable sound Â· Tap here</button>,document.body)}</>
 }

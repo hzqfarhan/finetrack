@@ -19,3 +19,5 @@
 .slide-picker input[type=range]{width:100%;margin:18px 0;accent-color:#00853d;touch-action:pan-y}.slide-number-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}.slide-number-grid button{min-height:44px;padding:8px}.slide-number-grid button[aria-current=step]{background:#007934;color:white}
 
 .enable-video-sound{position:fixed;z-index:2147483647;bottom:max(90px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);max-width:calc(100vw - 24px);min-height:48px;background:#007934;color:white;border:1px solid #ffffff80;box-shadow:0 4px 24px #0004;white-space:nowrap}.enable-video-sound:active{transform:translateX(-50%)}
+
+.remote-theme-toggle{margin-top:12px}

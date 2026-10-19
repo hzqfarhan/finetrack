@@ -34,7 +34,7 @@ test('ETC pairing, permissions, command acknowledgement, expiry and session isol
   await rpc('host',a.room,a.hostKey,{slide:2},null,null,[id]);
   result=await rpc('read',a.room,a.key,{},null,id);assert.equal(result.acknowledged,true);assert.equal(result.state.slide,2);
   assert.equal((await rpc('host',a.room,a.hostKey)).commands.length,0);
-  for(const command of ['question','highlight-port','highlight-button','highlight-loop','highlight-body','audio-mute','audio-unmute','video-stop',...Array.from({length:25},(_,i)=>`slide-${i+1}`),...videoEffects.map(clip=>`video-${clip}`)]){
+  for(const command of ['question','highlight-port','highlight-button','highlight-loop','highlight-body','audio-mute','audio-unmute','theme-light','theme-dark','video-stop',...Array.from({length:25},(_,i)=>`slide-${i+1}`),...videoEffects.map(clip=>`video-${clip}`)]){
    await db.query('update public."ETC_commands" set created_at=now()-interval \'2 seconds\' where session_id=$1',[b.room]);
    const featureId=randomUUID();await rpc('command',b.room,b.key,{},command,featureId);
    const update=await rpc('host',b.room,b.hostKey);assert.equal(update.commands[0].command,command);
