@@ -1,0 +1,95 @@
+/* Mobile-only layout: desktop presentation styles remain unchanged. */
+@media (max-width:800px) {
+ .hero-deck{width:100%;height:100dvh;padding:env(safe-area-inset-top,0px) max(12px,env(safe-area-inset-right,0px)) 0 max(12px,env(safe-area-inset-left,0px));grid-template-rows:auto minmax(0,1fr) auto}
+ .hero-deck>header{display:flex;flex-direction:column;align-items:stretch;gap:7px;padding:10px 0 8px;overflow:hidden}
+ .hero-deck .institution-brands{justify-content:center;min-height:29px;flex-shrink:0}
+ .hero-deck .top-actions{width:100%;min-width:0;overflow-x:auto;overflow-y:hidden;flex-wrap:nowrap;gap:6px;padding:2px 2px 6px;scrollbar-width:thin;-webkit-overflow-scrolling:touch}
+ .hero-deck .top-actions>*{flex:0 0 auto}
+ .hero-deck .top-actions button,.hero-deck .top-actions a{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:9px 12px;font-size:12px;white-space:nowrap}
+ .hero-deck .top-actions .fullscreen{display:none}
+ .hero-deck>.hero-slide,.hero-deck[data-scene=room]>.hero-slide{display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;min-width:0;min-height:0;overscroll-behavior:contain;scrollbar-width:thin;padding-bottom:12px}
+ .hero-deck .hero-copy,.hero-deck[data-scene=welcome] .hero-copy,.hero-deck[data-scene=room] .hero-copy{position:relative;inset:auto;flex:none;max-height:none;overflow:visible;padding:16px 2px 8px;pointer-events:auto}
+ .hero-deck .hero-copy h1,.hero-deck[data-scene=welcome] .hero-copy h1{font-size:clamp(30px,8vw,44px);line-height:1.08;letter-spacing:-1px;overflow-wrap:break-word}
+ .hero-deck .hero-copy .lead{font-size:14px;line-height:1.5}
+ .hero-deck .hero-copy .eyebrow{line-height:1.6}
+ .hero-deck .hero-view,.hero-deck[data-scene=room] .hero-view{position:relative;inset:auto;flex:none;width:100%;height:clamp(290px,48svh,440px);min-height:290px;overflow:hidden}
+ .hero-deck[data-scene=welcome] .hero-view{height:clamp(410px,62svh,560px)}
+ .hero-deck[data-scene=welcome] .canvas-wrap{height:calc(100% - 120px)}
+ .hero-deck[data-scene=welcome] .hero-wordmark{bottom:125px;font-size:clamp(20px,6vw,30px)}
+ .hero-deck .presenter-cards{bottom:8px;gap:7px}
+ .hero-deck .presenter-card{align-items:flex-start;padding:8px;gap:6px}
+ .hero-deck .presenter-card h2{font-size:9px;line-height:1.4;overflow-wrap:anywhere}
+ .hero-deck .presenter-card img{width:36px;height:48px}
+ .hero-deck .hero-tools,.hero-deck .hero-bottom{flex:none;max-height:none;overflow:visible;padding:10px 0;flex-wrap:wrap;gap:10px}
+ .hero-deck .hero-tools button,.hero-deck .hero-bottom button,.hero-deck .ecosystem-controls button,.hero-deck .map-controls button{min-height:44px}
+ .hero-deck .hero-inline-controls,.hero-deck .hero-tool-buttons{flex-wrap:wrap;justify-content:center}
+ .hero-deck>.hero-footer{height:auto;min-height:68px;gap:8px;padding:10px 0 max(12px,env(safe-area-inset-bottom,0px));border-top:1px solid var(--line)}
+ .hero-deck .hero-footer button{min-width:48px;min-height:44px;flex-shrink:0}
+ .hero-deck .current-slide{min-width:0;flex:1;text-align:center}
+ .hero-deck .current-slide strong{font-size:11px;white-space:normal;overflow-wrap:anywhere;line-height:1.3}
+ .hero-deck .current-slide>span{font-size:11px}
+ .hero-deck .notes{left:12px;right:12px;bottom:85px;max-height:65dvh;padding:16px}
+ .hero-deck .notice{top:115px;left:12px;right:12px}
+ .hero-deck[data-scene=thanks] .hero-view{height:auto;min-height:340px;overflow:visible}
+ .hero-deck .thanks-scene{height:auto;overflow:visible}
+ .hero-deck .developer-card-grid{grid-template-columns:minmax(0,1fr);width:100%;gap:18px}
+ .hero-deck .developer-card-stage{width:100%;min-width:0}
+ .hero-deck .developer-identity{min-width:0}
+ .hero-deck .developer-identity h2{font-size:24px;overflow-wrap:anywhere}
+ .hero-deck[data-scene=qr] .hero-view{height:390px}
+ .hero-deck .qr-card img{max-width:100%;width:min(70vw,270px);max-height:270px;flex:none}
+ .hero-deck .qr-card a{font-size:14px;overflow-wrap:anywhere}
+ /* Give the story its own canvas and text area instead of overlapping captions. */
+ .hero-deck[data-scene=room] .hero-view{height:auto;min-height:0;overflow:visible}
+ .hero-deck[data-scene=room] .hero-copy h1{font-size:26px;color:var(--text)}
+ .hero-deck[data-scene=room] .hero-demo-controls{position:static;margin-top:10px;flex-wrap:wrap}
+ .hero-deck .hero-demo-controls button,.hero-deck .hero-demo-controls summary{min-height:44px;font-size:12px}
+ .hero-deck .hero-view .cinematic-demo{display:flex;flex-direction:column;height:auto;gap:10px}
+ .hero-deck .cinematic-demo .room-scene{height:auto;display:flex;flex-direction:column;overflow:hidden}
+ .hero-deck .cinematic-demo .room-canvas{height:330px;min-height:330px;flex:none}
+ .hero-deck .cinematic-demo .room-scene:after{display:none}
+ .hero-deck .cinematic-demo .scene-badge{position:relative;inset:auto;order:-1;align-self:flex-start;margin:10px;font-size:9px}
+ .hero-deck .cinematic-demo .story-dialogue,.hero-deck .cinematic-demo .room-scene:has(.illustrated-map) .story-dialogue{position:relative;inset:auto;transform:none;max-width:none;width:auto;margin:10px;padding:12px}
+ .hero-deck .cinematic-demo .story-dialogue p{font-size:14px;line-height:1.5}
+ .hero-deck .cinematic-demo .demo-caption,.hero-deck .cinematic-demo .story-navigation,.hero-deck .cinematic-demo .demo-disclaimer{position:relative;inset:auto;width:auto;margin:0;max-width:100%;pointer-events:auto}
+ .hero-deck .cinematic-demo .demo-caption{padding:8px;justify-content:center}
+ .hero-deck .cinematic-demo .demo-caption p{display:block;font-size:12px}
+ .hero-deck .cinematic-demo .story-navigation{padding:10px;gap:8px}
+ .hero-deck .cinematic-demo .story-navigation button{min-height:44px;font-size:11px}
+ .hero-deck .cinematic-demo .demo-disclaimer{font-size:11px;line-height:1.5;padding:0 8px}
+ .hero-deck .cinematic-demo .illustrated-map{height:360px;flex:none}
+ .hero-deck .cinematic-demo .illustrated-map .map-heading,.hero-deck .cinematic-demo .map-location-card{position:relative;inset:auto;flex:none}
+ .hero-deck .cinematic-demo .illustrated-map svg{height:auto;flex:1;min-height:100px}
+ .hero-deck .cinematic-demo .ecosystem-visual{height:auto;min-height:380px;flex:none;padding:12px;overflow:visible}
+ .hero-deck .map-location-card{gap:8px;padding:10px;margin:0 8px 8px}
+ .hero-deck .map-status-pill{font-size:9px;padding:5px;white-space:nowrap}
+ /* Remote: comfortable targets and no horizontal overflow on narrow phones. */
+ .phone-remote{width:100%;padding:max(18px,env(safe-area-inset-top,0px)) max(14px,env(safe-area-inset-right,0px)) max(28px,env(safe-area-inset-bottom,0px)) max(14px,env(safe-area-inset-left,0px))!important;gap:14px}
+ .phone-remote>*{min-width:0;max-width:100%}
+ .phone-remote h1{font-size:32px;margin:4px 0;letter-spacing:-1px}
+ .phone-remote .remote-card{padding:16px;border-radius:18px}
+ .phone-remote .remote-card h2{font-size:20px}
+ .phone-remote .remote-card p{overflow-wrap:anywhere}
+ .phone-remote button,.phone-remote summary{min-height:44px}
+ .phone-remote input:not([type=range]),.phone-remote select{font-size:16px}
+ .phone-remote form>.primary{width:100%;margin-bottom:16px}
+ .phone-remote .remote-slide-number{font-size:48px}
+ .phone-remote .remote-navigation{grid-template-columns:1fr 1fr;gap:8px}
+ .phone-remote .remote-navigation button{min-height:60px;font-size:17px}
+ .phone-remote .effect-grid{gap:8px}
+ .phone-remote .effect-grid button{min-width:0;min-height:76px;font-size:20px;overflow-wrap:anywhere}
+ .phone-remote .slide-picker input[type=range]{min-height:44px;padding:0;border:0;margin:6px 0 12px}
+ .phone-remote .slide-number-grid{gap:5px}
+ .phone-remote .slide-number-grid button{min-width:0;min-height:44px;padding:5px}
+ .phone-remote .model-trackpad{min-height:220px}
+ .phone-remote .trackpad-actions{flex-wrap:wrap}
+ .phone-remote .timer-heading{flex-wrap:wrap}
+ .phone-remote .timer-actions{flex-wrap:wrap}
+ .phone-remote .remote-brand{flex-wrap:wrap;row-gap:8px}
+}
+@media (max-width:800px) and (max-height:500px){
+ .hero-deck>header{padding-top:5px;gap:3px}
+ .hero-deck .institution-brands{display:none}
+ .hero-deck>.hero-footer{min-height:56px;padding-top:5px;padding-bottom:max(5px,env(safe-area-inset-bottom,0px))}
+ .hero-deck .hero-copy h1,.hero-deck[data-scene=welcome] .hero-copy h1{font-size:30px}
+}
