@@ -56,7 +56,7 @@ const emptyEffects={curtain:false,blank:false,spotlight:false,confetti:0,questio
 function Presentation(){
  const [step,setStep]=useState(0),[notes,setNotes]=useState(false),[spin,setSpin]=useState(false),[part,setPart]=useState(''),[reset,setReset]=useState(0),[full,setFull]=useState(false),[colour,setColour]=useState('Graphite'),[front,setFront]=useState(false),[theme,setTheme]=useState('light'),[separation,setSeparation]=useState(1),[component,setComponent]=useState('board'),[notice,setNotice]=useState('');
  const [paired,setPaired]=useState(false),[mapItem,setMapItem]=useState('Keys');
- const [masterMuted,setMasterMuted]=useState(true),[videoError,setVideoError]=useState('');
+ const [masterMuted,setMasterMuted]=useState(false),[videoError,setVideoError]=useState('');
  const [effect,setEffect]=useState(emptyEffects),[orbit,setOrbit]=useState(null);
  const s=slides[step],exploded=s.scene==='layers',demo=useRoomDemo(s.scene==='room',()=>setStep(n=>Math.min(slides.length-1,n+1)),masterMuted),item=components.find(c=>c.id===component)||components[2];
  const canOrbit=s.scene==='room'?!demoSteps[demo.phase][2].view:!['thanks','qr','map','ios','android'].includes(s.scene);

@@ -92,3 +92,7 @@ Audience reads expose presentation state only, never controller keys or speaker 
 
 ## Trackpad and slide picker update
 Rerun the full `supabase/ETC_remote.sql` after this update. Globe control covers all product models (including the port close-up) and the room/café/terminal 3D story scenes. Flat maps, QR, platform graphics and the thank-you slide do not contain a 3D model, so the trackpad is disabled there. Trackpad failures are shown next to the globe. The close-up switches to the movable perspective camera when rotated. Drag the slide slider and release to jump, or tap any numbered button from 1–25. Live followers receive the selected slide and model angle.
+
+
+## Automatic joining and audio defaults
+Every page opening or reload now starts following live, even if that viewer left previously. Leaving still opts out for the current page visit. Sound defaults to On; the remote master toggle still applies to followers. If a browser blocks audible video autoplay, the video continues silently and displays **Enable sound · Tap here** on that viewer's screen. A tap retries playback with audio. Browsers retain control of autoplay permissions.
