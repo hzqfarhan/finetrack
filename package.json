@@ -7,7 +7,7 @@
     "build": "next build --webpack",
     "start": "next start",
     "dev:lan": "next dev --hostname 0.0.0.0",
-    "test:remote": "node --test tests/ETC-remote.test.mjs tests/ETC-preview.test.mjs"
+    "test:remote": "node --test tests/ETC-remote.test.mjs tests/ETC-preview.test.mjs tests/ETC-login.test.mjs"
   },
   "dependencies": {
     "next": "latest",

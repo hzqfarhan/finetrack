@@ -24,14 +24,14 @@ export const demoSteps=[
  ['Listen nearby','When the tracker connects nearby, use its sound.',{setting:'airport',shot:'follow',room:2,sound:true,speaker:'Traveller',line:'I hear the alert at the baggage carousel.'}],
  ['Ready for the next journey','Attach. Pair. Check the map. Listen nearby.',{setting:'airport',shot:'found',room:3,speaker:'Traveller',line:'That’s my suitcase. Ready to go!'}]
 ];
-export function useRoomDemo(active,onComplete){
+export function useRoomDemo(active,onComplete,masterMuted=false){
  const [phase,setPhase]=useState(0),[playing,setPlaying]=useState(false),[fileName,setFileName]=useState(''),[error,setError]=useState(''),[muted,setMuted]=useState(false);
  const audio=useRef(null),url=useRef(null),run=useRef(0);
  const stop=()=>{run.current++;setPlaying(false);audio.current?.pause()};
  useEffect(()=>{if(!active){stop();setPhase(0)}},[active]);
  useEffect(()=>()=>{audio.current?.pause();if(url.current)URL.revokeObjectURL(url.current)},[]);
- useEffect(()=>{if(audio.current)audio.current.volume=muted||!demoSteps[phase][2].sound?0:.45},[muted,phase]);
- async function jump(i){stop();setPhase(i);setError('');const animate=true;setPlaying(animate);if(demoSteps[i][2].sound&&audio.current){const token=run.current;audio.current.volume=muted?0:.45;try{await audio.current.play()}catch{if(token===run.current)setError('Audio could not play. Try another recording.')}if(token!==run.current)audio.current.pause()}else if(audio.current){audio.current.currentTime=0}}
+ useEffect(()=>{if(audio.current)audio.current.volume=masterMuted||muted||!demoSteps[phase][2].sound?0:.45},[muted,phase,masterMuted]);
+ async function jump(i){stop();setPhase(i);setError('');const animate=true;setPlaying(animate);if(demoSteps[i][2].sound&&audio.current){const token=run.current;audio.current.volume=masterMuted||muted?0:.45;try{await audio.current.play()}catch{if(token===run.current)setError('Audio could not play. Try another recording.')}if(token!==run.current)audio.current.pause()}else if(audio.current){audio.current.currentTime=0}}
  const advance=()=>{if(phase===demoSteps.length-1){stop();onComplete?.()}else jump(phase+1)};
  function upload(e){const file=e.target.files?.[0];if(!file)return;stop();setError('');if(!file.type.startsWith('audio/')&&!/\.(mp3|wav|ogg|m4a|aac|flac)$/i.test(file.name)){setError('Choose an audio recording, such as MP3 or WAV.');return}if(file.size>30*1024*1024){setError('Please choose a recording smaller than 30 MB.');return}if(url.current)URL.revokeObjectURL(url.current);url.current=URL.createObjectURL(file);audio.current=new Audio(url.current);audio.current.loop=true;audio.current.onerror=()=>setError('This recording could not be decoded. Try MP3 or WAV.');setFileName(file.name);setPhase(0)}
  return {phase,playing,fileName,error,muted,setMuted,stop,advance,jump,upload,last:phase===demoSteps.length-1};

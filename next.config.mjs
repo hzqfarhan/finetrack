@@ -1,1 +1,1 @@
-export default { output: 'export', images: { unoptimized: true }, trailingSlash: true };
+export default { images: { unoptimized: true }, trailingSlash: true };

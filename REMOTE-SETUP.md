@@ -64,3 +64,11 @@ The private timer defaults to 9:30, with 8:00, 9:00 and 10:00 targets. Start, pa
 Feature buttons jump to Explore the parts and focus the charging port, indicator, attachment opening or casing. Clear all effects also clears the selected feature. The audience-question button toggles a full-screen “What would you attach yours to?” prompt. Clear effects or Escape on the presentation dismisses it.
 
 If you already installed the earlier SQL, run `supabase/ETC_remote.sql` again to update the command allowlist. It preserves existing tables and supports the new question/highlight commands. Redeploy the presentation and remote together so they understand the same command set.
+
+
+## Password remote and video effects
+Set `ETC_REMOTE_MASTER_PASSWORD` in Vercel to your chosen password (the requested value is saved in the ignored local `.env.local`). Set `ETC_SUPABASE_SERVICE_ROLE_KEY` to the Supabase service-role key in the server environment only. Never prefix these settings with `NEXT_PUBLIC_`. Keep the existing public Supabase URL and publishable key settings. Redeploy after setting environment variables.
+
+This app now uses a Next.js server route for password verification; deploy with Vercel's Next.js preset and `.next` output, not static export. Open the presentation and select **Remote**, then open https://etcremote.seladevs.my and enter the password. Only one presentation remote session should be active. QR links remain optional.
+
+Rerun `supabase/ETC_remote.sql` to enable video and master audio commands. The seven clips in `public/greenscreen` are available as remote buttons; green is removed during playback. **Stop video**, **Clear all effects**, or Escape stops playback. The master sound button on the presentation and remote controls video and demo sound (the demo's own mute also applies). Sound starts muted. Browser autoplay rules may require allowing sound on the presentation computer. MOV browser compatibility and the green threshold should be checked with your actual clips before presenting.

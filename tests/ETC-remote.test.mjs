@@ -2,6 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {randomUUID} from 'node:crypto';
+import {videoEffects} from '../app/video-effects.mjs';
 import {PGlite} from '@electric-sql/pglite';
 
 test('ETC pairing, permissions, command acknowledgement, expiry and session isolation',async()=>{
@@ -33,7 +34,8 @@ test('ETC pairing, permissions, command acknowledgement, expiry and session isol
   await rpc('host',a.room,a.hostKey,{slide:2},null,null,[id]);
   result=await rpc('read',a.room,a.key,{},null,id);assert.equal(result.acknowledged,true);assert.equal(result.state.slide,2);
   assert.equal((await rpc('host',a.room,a.hostKey)).commands.length,0);
-  for(const command of ['question','highlight-port','highlight-button','highlight-loop','highlight-body']){
+  for(const command of ['question','highlight-port','highlight-button','highlight-loop','highlight-body','audio-mute','audio-unmute','video-stop',...videoEffects.map(clip=>`video-${clip}`)]){
+   await db.query('update public."ETC_commands" set created_at=now()-interval \'2 seconds\' where session_id=$1',[b.room]);
    const featureId=randomUUID();await rpc('command',b.room,b.key,{},command,featureId);
    const update=await rpc('host',b.room,b.hostKey);assert.equal(update.commands[0].command,command);
    await rpc('host',b.room,b.hostKey,{slide:9,previews:{current:{label:'Explore parts'},next:{label:'Casing'}}},null,null,[featureId]);

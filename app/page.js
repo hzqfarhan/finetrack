@@ -11,6 +11,7 @@ import AmbientShapes from './ambient-shapes';
 import Remote from './remote/page';
 import PairRemote from './pair-remote';
 import PresentationEffects from './presentation-effects';
+import {videoEffects} from './video-effects.mjs';
 import {useRemoteConnection} from './remote-connection';
 const baseSlides=[
  {label:'Meet FineTrack',tag:'01 / INTRODUCTION',title:<>Small tag. Big <em>relief.</em></>,text:'Your keys. Your bag. Your everyday, easier to find.',chips:['UGREEN','FineTrack Duo'],time:'1:00',person:'Speaker 1',notes:'Open with a question: “Have you ever been ready to leave, only to realise your keys are missing?” Pause for the audience. Introduce yourselves and the FineTrack Duo. Explain that you are presenting a lifestyle device for people who misplace everyday belongings. Give a short personal example, then preview the definition, parts, operation and benefits.',bridge:'“Let’s begin with what this little device actually is.”'},
@@ -54,19 +55,24 @@ const emptyEffects={curtain:false,blank:false,spotlight:false,confetti:0,questio
 function Presentation(){
  const [step,setStep]=useState(0),[notes,setNotes]=useState(false),[spin,setSpin]=useState(false),[part,setPart]=useState(''),[reset,setReset]=useState(0),[full,setFull]=useState(false),[colour,setColour]=useState('Graphite'),[front,setFront]=useState(false),[theme,setTheme]=useState('light'),[separation,setSeparation]=useState(1),[component,setComponent]=useState('board'),[notice,setNotice]=useState('');
  const [paired,setPaired]=useState(false),[mapItem,setMapItem]=useState('Keys');
+ const [masterMuted,setMasterMuted]=useState(true),[videoError,setVideoError]=useState('');
  const [remoteEnabled,setRemoteEnabled]=useState(false),[pairOpen,setPairOpen]=useState(false),[effect,setEffect]=useState(emptyEffects);
- const s=slides[step],exploded=s.scene==='layers',demo=useRoomDemo(s.scene==='room',()=>setStep(n=>Math.min(slides.length-1,n+1))),item=components.find(c=>c.id===component)||components[2];
+ const s=slides[step],exploded=s.scene==='layers',demo=useRoomDemo(s.scene==='room',()=>setStep(n=>Math.min(slides.length-1,n+1)),masterMuted),item=components.find(c=>c.id===component)||components[2];
  const go=n=>{setStep(Math.max(0,Math.min(slides.length-1,n)));setPart('');};
  const advance=()=>{if(s.scene==='room'){demo.advance();return}go(step===slides.length-1?0:step+1)};
  const previous=()=>{if(s.scene==='room'&&demo.phase>0){demo.jump(demo.phase-1);return}go(step-1)};
  const handleRemote=command=>{
-  if(command==='next')advance();
+  if(command==='audio-mute')setMasterMuted(true);
+  else if(command==='audio-unmute')setMasterMuted(false);
+  else if(command==='video-stop'){setEffect(old=>({...old,video:null}));setVideoError('')}
+  else if(command.startsWith('video-')&&videoEffects.includes(command.slice(6))){setVideoError('');setEffect(old=>({...old,video:{clip:command.slice(6),id:crypto.randomUUID()}}))}
+  else if(command==='next')advance();
   else if(command==='previous')previous();
   else if(command.startsWith('highlight-')){const selected=command.slice(10);if(['port','button','loop','body'].includes(selected)){go(slides.findIndex(x=>x.scene==='parts'));setPart(selected);setFront(false);setSpin(false);setEffect(emptyEffects)}}
  else if(command==='clear'){setPart('');setEffect(emptyEffects)}
  else setEffect(old=>command==='clear'?emptyEffects:command==='confetti'?{...old,confetti:old.confetti+1}:command==='curtain-close'?{...old,curtain:true}:command==='curtain-open'?{...old,curtain:false}:command==='blank'?{...old,blank:!old.blank}:command==='spotlight'?{...old,spotlight:!old.spotlight}:command==='question'?{...old,question:!old.question}:old);
  };
- const remote=useRemoteConnection({enabled:remoteEnabled,role:'host',onCommand:handleRemote,state:{slide:step+1,total:slides.length,title:s.label,demo:s.scene==='room'?demo.phase+1:null,notes:s.notes,effect,part:parts[part]?.[0]||null,previews:presentationPreviews(previewSlides,step,demoSteps,demo.phase)}});
+ const remote=useRemoteConnection({enabled:remoteEnabled,role:'host',onCommand:handleRemote,state:{masterMuted,videoError,slide:step+1,total:slides.length,title:s.label,demo:s.scene==='room'?demo.phase+1:null,notes:s.notes,effect,part:parts[part]?.[0]||null,previews:presentationPreviews(previewSlides,step,demoSteps,demo.phase)}});
  const live=useRef(null);live.current={advance,previous,pairOpen};
  useEffect(()=>{setPaired(false);setFront(false);setSpin(false);setColour(slides[step].colour||'Graphite');setSeparation(1)},[step]);
  useEffect(()=>{let saved;try{saved=localStorage.getItem('finetrack-theme-v2')}catch{}const initial=saved==='dark'||saved==='light'?saved:'light';setTheme(initial);document.documentElement.dataset.theme=initial;if(location.hash==='#inside')setStep(slides.findIndex(x=>x.scene==='layers'));},[]);
@@ -74,7 +80,7 @@ function Presentation(){
  async function fullscreen(){try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen()}catch{setNotice('Fullscreen is unavailable in this browser.')}}
  useEffect(()=>{const key=e=>{if(live.current.pairOpen&&e.key!=='Escape')return;if(e.target.closest('a,input,select,textarea,summary')||(e.key===' '&&e.target.closest('button')))return;const next=['ArrowRight','PageDown',' '].includes(e.key),prev=['ArrowLeft','PageUp'].includes(e.key);if(next||prev){e.preventDefault();if(e.repeat)return;if(next)live.current.advance();else live.current.previous()}if(e.key.toLowerCase()==='n')setNotes(n=>!n);if(e.key.toLowerCase()==='f')fullscreen();if(e.key==='Escape'){setNotes(false);setPairOpen(false);setEffect(emptyEffects);setPart('')}};const fs=()=>setFull(!!document.fullscreenElement);window.addEventListener('keydown',key);document.addEventListener('fullscreenchange',fs);return()=>{window.removeEventListener('keydown',key);document.removeEventListener('fullscreenchange',fs)}},[]);
  return <main className="hero-deck" data-scene={s.scene||'single'}><AmbientShapes/>
- <header><div className="institution-brands"><a className="brand" href="#" onClick={e=>{e.preventDefault();go(0)}}>UGREEN</a><span className="brand-divider" aria-hidden="true"/><img className="uthm-logo" src="/uthm-logo.png" alt="UTHM — Universiti Tun Hussein Onn Malaysia" width="3508" height="1274"/></div><div className="top-actions"><button className="remote-launch" onClick={()=>{setRemoteEnabled(true);setPairOpen(true)}}>{remote.count?'Remote connected':'Remote'}</button><button onClick={()=>go(1)} className="join-button">Join on your phone</button><button onClick={changeTheme} aria-label={'Switch to '+(theme==='light'?'dark':'light')+' mode'}>{theme==='light'?'◐':'☀'}</button><button aria-pressed={notes} onClick={()=>setNotes(!notes)}>Cues</button><button className="fullscreen" onClick={fullscreen}>{full?'Exit fullscreen':'Fullscreen'}</button></div></header>
+ <header><div className="institution-brands"><a className="brand" href="#" onClick={e=>{e.preventDefault();go(0)}}>UGREEN</a><span className="brand-divider" aria-hidden="true"/><img className="uthm-logo" src="/uthm-logo.png" alt="UTHM — Universiti Tun Hussein Onn Malaysia" width="3508" height="1274"/></div><div className="top-actions"><button className="remote-launch" aria-pressed={masterMuted} onClick={()=>setMasterMuted(value=>!value)}>{masterMuted?'Unmute sound':'Mute sound'}</button><button className="remote-launch" onClick={()=>{setRemoteEnabled(true);setPairOpen(true)}}>{remote.count?'Remote connected':'Remote'}</button><button onClick={()=>go(1)} className="join-button">Join on your phone</button><button onClick={changeTheme} aria-label={'Switch to '+(theme==='light'?'dark':'light')+' mode'}>{theme==='light'?'◐':'☀'}</button><button aria-pressed={notes} onClick={()=>setNotes(!notes)}>Cues</button><button className="fullscreen" onClick={fullscreen}>{full?'Exit fullscreen':'Fullscreen'}</button></div></header>
  {notice&&<p className="notice" role="status">{notice}<button onClick={()=>setNotice('')}>Dismiss</button></p>}
  <section className="hero-slide" aria-label={s.label}>
  <div className="hero-copy" key={step} aria-live="polite"><div className="eyebrow">{s.scene==='welcome'?'THE EVERYDAY ESSENTIAL':s.label.toUpperCase()}</div><h1>{s.title}</h1><p className="lead">{s.text}</p>
@@ -100,8 +106,8 @@ function Presentation(){
  </section>
  {notes&&<aside className="notes"><div><span>{s.person} · Speaking cues</span><button onClick={()=>setNotes(false)}>Close cues</button></div><p>{s.notes}</p><blockquote>{s.bridge}</blockquote><small>Cues are visible on this screen. Press N to hide them.</small></aside>}
  <footer className="hero-footer"><button aria-label="Previous slide" disabled={step===0} onClick={previous}>← <span>Previous</span></button><div className="current-slide"><span>{String(step+1).padStart(2,'0')} / {String(slides.length).padStart(2,'0')}</span><strong>{s.label}</strong></div><button className="primary" aria-label={s.scene==='room'&&!demo.last?'Next demo step':step===slides.length-1?'Restart presentation':'Next slide'} onClick={advance}><span>{step===slides.length-1?'Restart':'Next'}</span> →</button><div className="hero-progress" style={{'--progress':((step+1)/slides.length*100)+'%'}}/></footer>
- <PresentationEffects effect={effect}/>
- {(effect.curtain||effect.blank||effect.spotlight||effect.question||part)&&<button className="clear-stage" onClick={()=>handleRemote('clear')}>Clear effects · Esc</button>}
+ <PresentationEffects effect={effect} muted={masterMuted} onVideoDone={()=>setEffect(old=>old.video?.id===effect.video?.id?{...old,video:null}:old)} onVideoError={setVideoError}/>
+ {(effect.curtain||effect.blank||effect.spotlight||effect.question||effect.video||part)&&<button className="clear-stage" onClick={()=>handleRemote('clear')}>Clear effects · Esc</button>}
  {pairOpen&&<PairRemote remote={remote} onClose={()=>setPairOpen(false)} onStop={()=>{setRemoteEnabled(false);setPairOpen(false);handleRemote('clear')}}/>}
  </main>
 }
