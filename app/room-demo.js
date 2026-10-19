@@ -37,27 +37,30 @@ export function useRoomDemo(active,onComplete,masterMuted=false){
  return {phase,playing,fileName,error,muted,setMuted,stop,advance,jump,upload,last:phase===demoSteps.length-1};
 }
 export function DemoControls({demo}){return <div className="room-controls"><ol className="demo-steps">{demoSteps.map(([title,text],i)=><li key={title}><button aria-current={demo.phase===i?'step':undefined} onClick={()=>demo.jump(i)}><span>{i+1}</span><div><strong>{title}</strong><small>{text}</small></div></button></li>)}</ol><div className="demo-buttons"><button onClick={()=>demo.jump(0)}>Reset</button>{demo.fileName&&<button aria-pressed={demo.muted} onClick={()=>demo.setMuted(!demo.muted)}>{demo.muted?'Unmute':'Mute'}</button>}</div><label className="audio-upload">Add your tracker recording<input type="file" accept="audio/*,.m4a" onChange={demo.upload}/></label><p className="audio-status" role="status">{demo.error||demo.fileName||'Visual demo ready. Add your sound when you have it.'}</p></div>}
-function RoomCanvas({phase,playing,shot,setting}){
- const host=useRef(null),current=useRef({phase,playing,shot}),[failed,setFailed]=useState(false);current.current={phase,playing,shot};
+function RoomCanvas({phase,playing,shot,setting,orbit}){
+ const host=useRef(null),current=useRef({phase,playing,shot,orbit}),[failed,setFailed]=useState(false);current.current={phase,playing,shot,orbit};
  useEffect(()=>{let renderer,frame,observer,controls,scene;try{
  renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.25;host.current.appendChild(renderer.domElement);renderer.domElement.setAttribute('aria-label','Interactive 3D scenario with a person and their tracked belonging');
  scene=new THREE.Scene();scene.add(new THREE.HemisphereLight(0xffffff,0x9e8a71,2.5));const sun=new THREE.DirectionalLight(0xffe6bb,4);sun.position.set(-2,7,5);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);sun.shadow.camera.left=-5;sun.shadow.camera.right=5;sun.shadow.camera.top=5;sun.shadow.camera.bottom=-5;sun.shadow.normalBias=.03;scene.add(sun);
  const camera=new THREE.PerspectiveCamera(38,1,.1,70);camera.position.set(6.5,5.4,8.3);controls=new OrbitControls(camera,renderer.domElement);controls.target.set(0,.8,0);controls.enablePan=false;controls.enableDamping=true;controls.minDistance=.3;controls.maxDistance=30;controls.minAzimuthAngle=-Math.PI;controls.maxAzimuthAngle=Math.PI;controls.maxPolarAngle=Math.PI/2.1;controls.update();
  const model=buildRoom(scene,setting),reduced=matchMedia('(prefers-reduced-motion: reduce)').matches,start=performance.now();
  const shots={wide:[[6.5,5.4,8.3],[0,.8,0]],person:[[1.2,2.5,4.3],[-1.1,1,.7]],detail:setting==='home'?[[2.05,1.06,.62],[1.87,.80,.22]]:[[2.5,1.6,1.4],[1.85,1,.20]],follow:[[4.3,3.2,5.1],[.3,.85,.4]],found:[[4,2.7,4.4],[1.4,.8,.2]]};
- let framing=true,previousShot='',last=performance.now(),elapsed=0;controls.addEventListener('start',()=>{framing=false});
+ let remoteId=null,remoteTarget=null,remoteRadius=0;
+ let framing=true,previousShot='',last=performance.now(),elapsed=0;controls.addEventListener('start',()=>{framing=false;remoteTarget=null});
  const resize=()=>{const {width,height}=host.current.getBoundingClientRect();if(!width||!height)return;renderer.setSize(width,height);camera.aspect=width/height;camera.updateProjectionMatrix();framing=true;previousShot=''};observer=new ResizeObserver(resize);observer.observe(host.current);resize();
  const tick=()=>{frame=requestAnimationFrame(tick);const now=performance.now(),state=current.current,dt=Math.min((now-last)/1000,.05);elapsed+=dt;last=now;
- if(state.shot!==previousShot){framing=true;previousShot=state.shot}
+ if(state.shot!==previousShot){framing=true;remoteTarget=null;previousShot=state.shot}
+ if(state.orbit&&state.orbit.id!==remoteId){remoteId=state.orbit.id;framing=false;controls.maxPolarAngle=Math.PI-.01;controls.enableDamping=false;controls.update();controls.enableDamping=true;remoteRadius=camera.position.distanceTo(controls.target);remoteTarget=new THREE.Vector3().setFromSpherical(new THREE.Spherical(remoteRadius,THREE.MathUtils.degToRad(90-state.orbit.pitch),THREE.MathUtils.degToRad(state.orbit.yaw))).add(controls.target)}
+ if(remoteTarget){camera.position.lerp(remoteTarget,reduced?1:1-Math.exp(-12*dt));camera.position.sub(controls.target).setLength(remoteRadius).add(controls.target)}
  if(framing){const [position,target]=shots[state.shot]||shots.wide,aim=new THREE.Vector3(...target),offset=new THREE.Vector3(...position).sub(aim);offset.multiplyScalar(Math.max(.8,1/camera.aspect));const dest=aim.clone().add(offset),speed=reduced?1:1-Math.exp(-3*dt);camera.position.lerp(dest,speed);controls.target.lerp(aim,speed);if(camera.position.distanceTo(dest)<.005)framing=false;}
  model.update(state.phase,elapsed,reduced);controls.update();renderer.render(scene,camera)};tick();
 
  }catch{setFailed(true)}return()=>{cancelAnimationFrame(frame);observer?.disconnect();controls?.dispose();scene?.traverse(o=>{o.geometry?.dispose();o.material?.map?.dispose();o.material?.dispose()});renderer?.dispose();renderer?.domElement.remove()};},[setting]);
  return <div className="room-canvas" ref={host}>{failed&&<p>3D rendering is unavailable. Use the story steps to walk through the demonstration.</p>}</div>
 }
-export default function RoomDemo({demo}){const [title,text,story]=demoSteps[demo.phase];return <div className={'room-demo cinematic-demo phase-'+demo.phase}>
+export default function RoomDemo({demo,orbit}){const [title,text,story]=demoSteps[demo.phase];return <div className={'room-demo cinematic-demo phase-'+demo.phase}>
  <div className="room-scene"><span className="scene-badge">{story.setting==='home'?'01 · MISSING KEYS':story.setting==='cafe'?'02 · THE FORGOTTEN BAG':'03 · AT THE TERMINAL'} · {story.view==='map'?'LOCATION MAP':story.view==='phone'?'FINDING APP':'3D STORY'}</span>
- {story.view==='map'?<LocationMap key={story.item} item={story.item}/>:story.view?<EcosystemVisual key={story.view+story.setting} map={story.view==='map'} item={story.item} paired={true}/>:<RoomCanvas phase={story.room} playing={demo.playing} shot={story.shot} setting={story.setting}/>}
+ {story.view==='map'?<LocationMap key={story.item} item={story.item}/>:story.view?<EcosystemVisual key={story.view+story.setting} map={story.view==='map'} item={story.item} paired={true}/>:<RoomCanvas orbit={orbit} phase={story.room} playing={demo.playing} shot={story.shot} setting={story.setting}/>}
  <div className="story-dialogue" aria-live="polite"><span>{story.speaker}</span><p>“{story.line}”</p></div></div>
  <div className="demo-caption" aria-live="polite"><span>{String(demo.phase+1).padStart(2,'0')} / {demoSteps.length}</span><strong>{title}</strong><p>{text}</p></div>
  <div className="story-navigation"><button disabled={demo.phase===0} onClick={()=>demo.jump(demo.phase-1)}>← Previous moment</button><div>{[0,6,12].map((n,i)=><button key={n} aria-pressed={story.setting===['home','cafe','airport'][i]} onClick={()=>demo.jump(n)}>{['Keys','Bag','Luggage'][i]}</button>)}</div><span>{demo.last?'Next continues to the next slide':'Use Next below to continue'}</span></div>

@@ -14,14 +14,14 @@ alter table public."ETC_sessions" add column if not exists orbit jsonb;
 create table if not exists public."ETC_commands" (
  id uuid primary key,
  session_id uuid not null references public."ETC_sessions"(id) on delete cascade,
- command text not null check (command in ('next','previous','confetti','curtain-close','curtain-open','spotlight','blank','clear','question','highlight-port','highlight-button','highlight-loop','highlight-body','audio-mute','audio-unmute','video-boxing','video-catduo','video-cattrio','video-hamster','video-kopi','video-princess','video-speed','video-stop')),
+ command text not null check (command in ('next','previous','confetti','curtain-close','curtain-open','spotlight','blank','clear','question','highlight-port','highlight-button','highlight-loop','highlight-body','audio-mute','audio-unmute','video-boxing','video-catduo','video-cattrio','video-hamster','video-kopi','video-princess','video-speed','video-stop','slide-1','slide-2','slide-3','slide-4','slide-5','slide-6','slide-7','slide-8','slide-9','slide-10','slide-11','slide-12','slide-13','slide-14','slide-15','slide-16','slide-17','slide-18','slide-19','slide-20','slide-21','slide-22','slide-23','slide-24','slide-25')),
  created_at timestamptz not null default clock_timestamp(),
  acknowledged boolean not null default false
 );
 -- Upgrade the command allowlist when this setup is run on an existing project.
 alter table public."ETC_commands" drop constraint if exists "ETC_commands_command_check";
 alter table public."ETC_commands" add constraint "ETC_commands_command_check"
- check (command in ('next','previous','confetti','curtain-close','curtain-open','spotlight','blank','clear','question','highlight-port','highlight-button','highlight-loop','highlight-body','audio-mute','audio-unmute','video-boxing','video-catduo','video-cattrio','video-hamster','video-kopi','video-princess','video-speed','video-stop'));
+ check (command in ('next','previous','confetti','curtain-close','curtain-open','spotlight','blank','clear','question','highlight-port','highlight-button','highlight-loop','highlight-body','audio-mute','audio-unmute','video-boxing','video-catduo','video-cattrio','video-hamster','video-kopi','video-princess','video-speed','video-stop','slide-1','slide-2','slide-3','slide-4','slide-5','slide-6','slide-7','slide-8','slide-9','slide-10','slide-11','slide-12','slide-13','slide-14','slide-15','slide-16','slide-17','slide-18','slide-19','slide-20','slide-21','slide-22','slide-23','slide-24','slide-25'));
 create index if not exists "ETC_commands_session_time" on public."ETC_commands"(session_id,created_at);
 alter table public."ETC_sessions" enable row level security;
 alter table public."ETC_commands" enable row level security;
@@ -79,7 +79,7 @@ begin
    'acknowledged',exists(select 1 from public."ETC_commands" where session_id=p_room and id=p_id and acknowledged));
  elsif p_action='command' then
   if s.host_seen<now()-interval '8 seconds' then raise exception 'Presentation offline'; end if;
-  if p_id is null or p_command is null or p_command not in ('next','previous','confetti','curtain-close','curtain-open','spotlight','blank','clear','question','highlight-port','highlight-button','highlight-loop','highlight-body','audio-mute','audio-unmute','video-boxing','video-catduo','video-cattrio','video-hamster','video-kopi','video-princess','video-speed','video-stop') then raise exception 'Invalid command'; end if;
+  if p_id is null or p_command is null or p_command not in ('next','previous','confetti','curtain-close','curtain-open','spotlight','blank','clear','question','highlight-port','highlight-button','highlight-loop','highlight-body','audio-mute','audio-unmute','video-boxing','video-catduo','video-cattrio','video-hamster','video-kopi','video-princess','video-speed','video-stop','slide-1','slide-2','slide-3','slide-4','slide-5','slide-6','slide-7','slide-8','slide-9','slide-10','slide-11','slide-12','slide-13','slide-14','slide-15','slide-16','slide-17','slide-18','slide-19','slide-20','slide-21','slide-22','slide-23','slide-24','slide-25') then raise exception 'Invalid command'; end if;
   if (select count(*) from public."ETC_commands" where session_id=p_room and created_at>now()-interval '1 second')>=30 then raise exception 'Please slow down'; end if;
   if p_command<>'confetti' and exists(select 1 from public."ETC_commands" where session_id=p_room and command<>'confetti' and not acknowledged and created_at>now()-interval '4 seconds' and id<>p_id) then raise exception 'Wait for the current command to finish'; end if;
   insert into public."ETC_commands"(id,session_id,command) values(p_id,p_room,p_command) on conflict(id) do nothing;

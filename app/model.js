@@ -118,7 +118,7 @@ export default function Model({orbit,sceneType='single',slide,part,spin,reset,co
  let last=performance.now();const started=last;
  const animate=()=>{
   frame=requestAnimationFrame(animate);const now=performance.now(),dt=Math.min((now-last)/1000,.05),t=(now-started)/1000;last=now;
-  const a=api.current,focus=a.sceneType==='parts'&&a.part,detail=!a.inside&&a.sceneType==='covered';controls.enabled=!detail;controls.autoRotate=a.spin&&!reduced&&!detail;
+  const a=api.current,focus=a.sceneType==='parts'&&a.part,detail=!a.inside&&a.sceneType==='covered'&&!a.orbitTarget;controls.enabled=!detail;controls.autoRotate=a.spin&&!reduced&&!detail;
   for(const material of [dark,face,seam,buttonFace,silver,led,logo.material,portMaterial,plugMaterial]){
    let opacity=detail?.20:1;
    if(focus){const active=focus==='body'?[dark,face,seam,logo.material]:focus==='loop'?[dark]:focus==='button'?[led,buttonFace]:[portMaterial,silver,plugMaterial];opacity=active.includes(material)?1:.18;}
@@ -181,7 +181,7 @@ export default function Model({orbit,sceneType='single',slide,part,spin,reset,co
  }
  a.face.emissive.set(part==='body'?0x23330b:0x000000);
  },[sceneType,slide,part,reset,front,inside]);
- useEffect(()=>{if(!api.current||!orbit)return;const a=api.current;const radius=a.camera.position.distanceTo(a.controls.target);a.orbitRadius=radius;a.orbitTarget=new THREE.Vector3().setFromSpherical(new THREE.Spherical(radius,THREE.MathUtils.degToRad(90-orbit.pitch),THREE.MathUtils.degToRad(orbit.yaw))).add(a.controls.target);},[orbit]);
+ useEffect(()=>{if(!api.current||!orbit)return;const a=api.current;const radius=a.camera.position.distanceTo(a.controls.target);a.controls.autoRotate=false;a.controls.enableDamping=false;a.controls.update();a.controls.enableDamping=true;a.orbitRadius=radius;a.orbitTarget=new THREE.Vector3().setFromSpherical(new THREE.Spherical(radius,THREE.MathUtils.degToRad(90-orbit.pitch),THREE.MathUtils.degToRad(orbit.yaw))).add(a.controls.target);},[orbit]);
  useEffect(()=>{if(api.current){api.current.spin=spin;if(spin)api.current.orbitTarget=null;}},[spin]);
  useEffect(()=>{if(!api.current)return;const a=api.current;const palettes={Graphite:['#555b70','#25282c','#474d5f'],Pearl:['#d9dce1','#a1a7af','#a5abb6'],Blue:['#4074a4','#23384e','#2d527b'],Green:['#57866b','#283d31','#3b604b']};const [face,frame,button]=palettes[colour]||palettes.Graphite;a.face.color.set(face);a.dark.color.set(frame);a.buttonFace.color.set(button);},[colour]);
  useEffect(()=>{if(!api.current)return;const a=api.current;a.inside=inside;a.amount=separation;for(const m of [a.face,a.boardMaterial,a.batteryMaterial,a.gold,a.dark])m.emissive.set(0x000000);if(inside){const m={cover:a.face,board:a.boardMaterial,battery:a.batteryMaterial,antenna:a.gold,speaker:a.dark}[selected];m?.emissive.set(0x123921);}},[inside,separation,selected]);

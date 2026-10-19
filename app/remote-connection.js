@@ -52,9 +52,9 @@ export function useRemoteConnection({enabled,role,credentials,onCommand,onOrbit,
   catch(e){if(!active.current||pendingCommand.current?.id!==id)return;pendingCommand.current=null;setPending(false);setError(`${e.message} Check the screen before retrying.`)}
  };
  const rotate=async angles=>{
-  if(!online||status!=='connected')return;
-  try{await remoteRequest({p_action:'orbit',p_room:credentials.room,p_key:credentials.key,p_state:angles,p_id:crypto.randomUUID()})}
-  catch(e){if(active.current)setError(e.message)}
+  if(!online||status!=='connected')throw new Error('Presentation is offline.');
+  try{const result=await remoteRequest({p_action:'orbit',p_room:credentials.room,p_key:credentials.key,p_state:angles,p_id:crypto.randomUUID()});if(result.ignored||result.ended)throw new Error('Slide changed. Try dragging again.');return true}
+  catch(e){if(active.current)setError(e.message);throw e}
  };
  return {status,pair,view,online,count,error,pending,send,rotate};
 }
