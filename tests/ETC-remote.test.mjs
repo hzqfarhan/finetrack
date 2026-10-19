@@ -40,6 +40,25 @@ test('ETC pairing, permissions, command acknowledgement, expiry and session isol
    const update=await rpc('host',b.room,b.hostKey);assert.equal(update.commands[0].command,command);
    await rpc('host',b.room,b.hostKey,{slide:9,previews:{current:{label:'Explore parts'},next:{label:'Casing'}}},null,null,[featureId]);
   }
+  const burstIds=[];
+  for(let i=0;i<12;i++){const burstId=randomUUID();burstIds.push(burstId);await rpc('command',b.room,b.key,{},'confetti',burstId)}
+  const navId=randomUUID();await rpc('command',b.room,b.key,{},'next',navId);
+  const extraBurst=randomUUID();await rpc('command',b.room,b.key,{},'confetti',extraBurst);
+  const batch=await rpc('host',b.room,b.hostKey);assert.equal(batch.commands.filter(c=>c.command==='confetti').length,13);
+  assert.equal(batch.commands.filter(c=>c.command==='next').length,1);
+  await assert.rejects(rpc('command',b.room,b.key,{},'previous',randomUUID()),/Wait for the current command/);
+  await rpc('host',b.room,b.hostKey,{},null,null,[...burstIds,navId,extraBurst]);
+  assert.equal((await rpc('host',b.room,b.hostKey)).commands.length,0);
+  await rpc('host',b.room,b.hostKey,{slide:9});
+  await assert.rejects(rpc('orbit',b.room,a.key,{slide:9,yaw:10,pitch:20},null,randomUUID()),/Invalid pairing/);
+  for(const invalid of [{slide:9,yaw:361,pitch:0},{slide:9,yaw:0,pitch:81},{slide:9,yaw:'10',pitch:0},{}]){
+   await assert.rejects(rpc('orbit',b.room,b.key,invalid,null,randomUUID()),/Invalid orbit/);
+  }
+  for(let yaw=0;yaw<20;yaw++)await rpc('orbit',b.room,b.key,{slide:9,yaw,pitch:20},null,randomUUID());
+  assert.equal((await rpc('host',b.room,b.hostKey,{slide:9})).orbit.yaw,19);
+  assert.equal((await rpc('host',a.room,a.hostKey,{slide:9})).orbit,null);
+  assert.equal((await rpc('orbit',b.room,b.key,{slide:8,yaw:0,pitch:0},null,randomUUID())).ignored,true);
+  assert.equal((await rpc('host',b.room,b.hostKey,{slide:10})).orbit,null);
   const old=randomUUID();await rpc('command',a.room,a.key,{},'confetti',old);
   await db.query('update public."ETC_commands" set created_at=now()-interval \'5 seconds\' where id=$1',[old]);
   assert.equal((await rpc('host',a.room,a.hostKey)).commands.length,0);

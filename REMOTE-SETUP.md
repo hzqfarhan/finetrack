@@ -72,3 +72,13 @@ Set `ETC_REMOTE_MASTER_PASSWORD` in Vercel to your chosen password (the requeste
 This app now uses a Next.js server route for password verification; deploy with Vercel's Next.js preset and `.next` output, not static export. Open the presentation and select **Remote**, then open https://etcremote.seladevs.my and enter the password. Only one presentation remote session should be active. QR links remain optional.
 
 Rerun `supabase/ETC_remote.sql` to enable video and master audio commands. The seven clips in `public/greenscreen` are available as remote buttons; green is removed during playback. **Stop video**, **Clear all effects**, or Escape stops playback. The master sound button on the presentation and remote controls video and demo sound (the demo's own mute also applies). Sound starts muted. Browser autoplay rules may require allowing sound on the presentation computer. MOV browser compatibility and the green threshold should be checked with your actual clips before presenting.
+
+
+## Hidden remote controls and effects downloads
+The main presentation now starts its remote session automatically. There is no Remote or Clear effects button on the audience screen; use the password page on your phone. Keep only the intended main-screen presentation tab open when connecting. The header's **Download effects** button downloads all seven original MOV clips in one ZIP.
+
+Effects render in a separate layer attached to the page body, above the slide, curtain, and blank-screen layers. Video and confetti never intercept clicks. Repeated confetti taps add overlapping bursts; the button stays enabled while other commands await acknowledgement. Rerun `supabase/ETC_remote.sql` for the updated queue behavior (up to 30 commands per second). Escape and the phone's Clear all effects still clear the stage.
+
+
+## Globe trackpad
+Rerun `supabase/ETC_remote.sql` to enable the remote's Globe trackpad. Drag horizontally to orbit the product and vertically to tilt (limited to 80 degrees). Reset angle returns the camera to a straight-on view. Rotation stops auto-spin. The trackpad supports touch, mouse and arrow keys, and is disabled on non-model slides and the fixed port close-up. Position updates keep only the latest angle, separate from the slide command queue; the host polls every 150 ms, so response depends on network speed. The phone globe is a control indicator, not a live 3D preview.

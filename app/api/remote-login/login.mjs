@@ -16,8 +16,8 @@ export async function login(request,env=process.env,fetcher=fetch){
   const response=await fetcher(endpoint,{headers:{apikey:key,Authorization:`Bearer ${key}`},cache:'no-store',signal:AbortSignal.timeout(5000)});
   if(!response.ok)throw new Error();
   const sessions=await response.json();
-  if(!sessions.length)return reply({error:'Open the presentation and select Remote first, then try again.'},409);
-  if(sessions.length>1)return reply({error:'More than one presentation is active. End the extra remote session, then try again.'},409);
+  if(!sessions.length)return reply({error:'Open the presentation on your main screen, then try again.'},409);
+  if(sessions.length>1)return reply({error:'More than one presentation is active. Close the extra presentation tab, then try again.'},409);
   return reply({room:sessions[0].id,key:sessions[0].control_key});
  }catch{return reply({error:'Cannot connect to the presentation. Check the server Supabase settings.'},502)}
 }

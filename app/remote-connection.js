@@ -9,13 +9,13 @@ export async function remoteRequest(parameters){
  if(!response.ok){let data;try{data=await response.json()}catch{}throw new Error(data?.message||'Cannot reach Supabase. Check your connection and ETC database setup.')}
  return response.json();
 }
-export function useRemoteConnection({enabled,role,credentials,onCommand,state}){
+export function useRemoteConnection({enabled,role,credentials,onCommand,onOrbit,state}){
  const [status,setStatus]=useState('off'),[pair,setPair]=useState(null),[view,setView]=useState(null),[online,setOnline]=useState(false),[count,setCount]=useState(0),[error,setError]=useState(''),[pending,setPending]=useState(false);
- const latest=useRef({onCommand,state}),pendingCommand=useRef(null),active=useRef(false);
- latest.current={onCommand,state};
+ const latest=useRef({onCommand,onOrbit,state}),pendingCommand=useRef(null),active=useRef(false);
+ latest.current={onCommand,onOrbit,state};
  useEffect(()=>{
   if(!enabled){setStatus('off');setPair(null);setOnline(false);setCount(0);return}
-  let cancelled=false,timer,auth=credentials,acks=[];const applied=new Set();active.current=true;pendingCommand.current=null;setPending(false);setError('');setStatus('connecting');setView(null);
+  let cancelled=false,timer,auth=credentials,acks=[],lastOrbit=null;const applied=new Set();active.current=true;pendingCommand.current=null;setPending(false);setError('');setStatus('connecting');setView(null);
   const stopHost=keys=>remoteRequest({p_action:'end',p_room:keys.room,p_key:keys.hostKey}).catch(()=>{});
   const poll=async()=>{
    try{
@@ -26,6 +26,7 @@ export function useRemoteConnection({enabled,role,credentials,onCommand,state}){
     if(result.ended){setStatus('ended');setOnline(false);setError('This session has ended or expired. Pair again from the presentation.');return}
     setStatus('connected');setError('');
     if(role==='host'){
+     if(result.orbit&&result.orbit.id!==lastOrbit){lastOrbit=result.orbit.id;latest.current.onOrbit?.(result.orbit)}
      acks=acks.filter(id=>!sentAcks.includes(id));setCount(result.remoteOnline?1:0);
      for(const command of result.commands||[]){if(!applied.has(command.id)){latest.current.onCommand?.(command.command);applied.add(command.id)}acks.push(command.id)}
     }else{
@@ -34,15 +35,26 @@ export function useRemoteConnection({enabled,role,credentials,onCommand,state}){
      if(waiting&&(result.acknowledged||Date.now()-waiting.sent>6500)){pendingCommand.current=null;setPending(false);if(!result.acknowledged)setError('No confirmation received. Check the screen before trying again.')}
     }
    }catch(e){if(cancelled)return;setOnline(false);setCount(0);setStatus('connecting');setError(e.message);if(pendingCommand.current&&Date.now()-pendingCommand.current.sent>6500){pendingCommand.current=null;setPending(false)}if(!url||!apiKey){setStatus('error');return}}
-   if(!cancelled)timer=setTimeout(poll,500);
+   if(!cancelled)timer=setTimeout(poll,role==='host'?150:500);
   };poll();
   return()=>{cancelled=true;active.current=false;clearTimeout(timer);pendingCommand.current=null;setPending(false);if(role==='host'&&auth)stopHost(auth)};
  },[enabled,role,credentials]);
  const send=async command=>{
-  if(pendingCommand.current||!online||status!=='connected')return;
+  if(!online||status!=='connected')return;
+  if(command==='confetti'){
+   try{await remoteRequest({p_action:'command',p_room:credentials.room,p_key:credentials.key,p_command:command,p_id:crypto.randomUUID()})}
+   catch(e){if(active.current)setError(e.message)}
+   return;
+  }
+  if(pendingCommand.current)return;
   const id=crypto.randomUUID();pendingCommand.current={id,sent:Date.now()};setPending(true);setError('');
   try{await remoteRequest({p_action:'command',p_room:credentials.room,p_key:credentials.key,p_command:command,p_id:id})}
   catch(e){if(!active.current||pendingCommand.current?.id!==id)return;pendingCommand.current=null;setPending(false);setError(`${e.message} Check the screen before retrying.`)}
  };
- return {status,pair,view,online,count,error,pending,send};
+ const rotate=async angles=>{
+  if(!online||status!=='connected')return;
+  try{await remoteRequest({p_action:'orbit',p_room:credentials.room,p_key:credentials.key,p_state:angles,p_id:crypto.randomUUID()})}
+  catch(e){if(active.current)setError(e.message)}
+ };
+ return {status,pair,view,online,count,error,pending,send,rotate};
 }

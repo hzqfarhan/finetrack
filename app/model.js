@@ -15,7 +15,7 @@ const poses=[
  {rotation:[.24,.38,.24],position:[-.24,.02,0],scale:1.40},
  {rotation:[-.08,-.18,-.38],position:[.10,.10,0],scale:1.47}
 ];
-export default function Model({sceneType='single',slide,part,spin,reset,colour,front,inside=false,separation=1,selected,onSelect}){
+export default function Model({orbit,sceneType='single',slide,part,spin,reset,colour,front,inside=false,separation=1,selected,onSelect}){
  const host=useRef(),api=useRef(),selectCallback=useRef(onSelect),[failed,setFailed]=useState(false);
  selectCallback.current=onSelect;
  useEffect(()=>{let renderer,frame,observer,environment,pmrem;const el=host.current;let controls;
@@ -111,6 +111,7 @@ export default function Model({sceneType='single',slide,part,spin,reset,colour,f
  renderer.domElement.addEventListener('pointerdown',e=>{down=[e.clientX,e.clientY]});
  renderer.domElement.addEventListener('pointerup',e=>{if(!api.current?.inside||api.current.amount<.03||!down||Math.hypot(e.clientX-down[0],e.clientY-down[1])>6)return;const r=renderer.domElement.getBoundingClientRect();pointer.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);raycaster.setFromCamera(pointer,camera);const hit=raycaster.intersectObjects(body.children,true).find(h=>h.object.visible&&h.object.userData.component);if(hit)selectCallback.current?.(hit.object.userData.component);down=null;});
  controls=new OrbitControls(camera,renderer.domElement);controls.enablePan=false;controls.enableDamping=true;controls.minDistance=5;controls.maxDistance=12;controls.autoRotateSpeed=.65;controls.target.set(0,0,0);
+ controls.addEventListener('start',()=>{if(api.current)api.current.orbitTarget=null});
  const resize=()=>{const {width,height}=el.getBoundingClientRect();renderer.setSize(width,height);camera.aspect=width/height;camera.updateProjectionMatrix();detailCamera.left=-2.3*camera.aspect;detailCamera.right=2.3*camera.aspect;detailCamera.updateProjectionMatrix()};observer=new ResizeObserver(resize);observer.observe(el);resize();
  const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
  api.current={sceneType,accessories,copies,portPlug,controls,pivot,body,face,button,cap,port,dark,buttonFace,highlight,coverGroup,rearGroup,boardGroup,batteryGroup,boardMaterial,batteryMaterial,gold,disc,centre,camera,tongue,inside:false,amount:0,reduced,led,target:poses[0].rotation,position:poses[0].position,scale:poses[0].scale,spin:false};
@@ -162,12 +163,13 @@ export default function Model({sceneType='single',slide,part,spin,reset,colour,f
   if(detail){scale=Math.min(3.5,3.5*camera.aspect);center.set(.32,-1.20,0);}
   body.scale.setScalar(THREE.MathUtils.lerp(body.scale.x,scale,speed));
   body.position.lerp(center.clone().multiplyScalar(-scale),speed);
+  if(a.orbitTarget){camera.position.lerp(a.orbitTarget,reduced?1:1-Math.exp(-12*dt));camera.position.sub(controls.target).setLength(a.orbitRadius).add(controls.target);}
   controls.update(dt);renderer.render(scene,detail?detailCamera:camera);
  };animate();
  }catch(e){setFailed(true)}
  return()=>{cancelAnimationFrame(frame);observer?.disconnect();controls?.dispose();if(api.current){api.current.body.traverse(o=>{o.geometry?.dispose();if(o.material){o.material.map?.dispose();o.material.dispose()}})}environment?.dispose();pmrem?.dispose();renderer?.dispose();renderer?.domElement.remove();api.current=null;};
  },[]);
- useEffect(()=>{if(!api.current)return;const a=api.current,p=poses[slide%poses.length];a.sceneType=sceneType;a.part=part;a.chargeStart=performance.now();a.controls.reset();
+ useEffect(()=>{if(!api.current)return;const a=api.current,p=poses[slide%poses.length];a.sceneType=sceneType;a.part=part;a.chargeStart=performance.now();a.orbitTarget=null;a.controls.reset();
  a.target=inside?[.3,-.92,-.14]:front?[0,0,0]:part==='port'?[-.9,-.12,0]:part==='loop'?[0,-.12,0]:part==='button'?[0,.05,0]:p.rotation;
  a.position=inside||front||part?[0,0,0]:p.position;a.scale=1.55;
  if(!inside){
@@ -179,7 +181,8 @@ export default function Model({sceneType='single',slide,part,spin,reset,colour,f
  }
  a.face.emissive.set(part==='body'?0x23330b:0x000000);
  },[sceneType,slide,part,reset,front,inside]);
- useEffect(()=>{if(api.current)api.current.spin=spin;},[spin]);
+ useEffect(()=>{if(!api.current||!orbit)return;const a=api.current;const radius=a.camera.position.distanceTo(a.controls.target);a.orbitRadius=radius;a.orbitTarget=new THREE.Vector3().setFromSpherical(new THREE.Spherical(radius,THREE.MathUtils.degToRad(90-orbit.pitch),THREE.MathUtils.degToRad(orbit.yaw))).add(a.controls.target);},[orbit]);
+ useEffect(()=>{if(api.current){api.current.spin=spin;if(spin)api.current.orbitTarget=null;}},[spin]);
  useEffect(()=>{if(!api.current)return;const a=api.current;const palettes={Graphite:['#555b70','#25282c','#474d5f'],Pearl:['#d9dce1','#a1a7af','#a5abb6'],Blue:['#4074a4','#23384e','#2d527b'],Green:['#57866b','#283d31','#3b604b']};const [face,frame,button]=palettes[colour]||palettes.Graphite;a.face.color.set(face);a.dark.color.set(frame);a.buttonFace.color.set(button);},[colour]);
  useEffect(()=>{if(!api.current)return;const a=api.current;a.inside=inside;a.amount=separation;for(const m of [a.face,a.boardMaterial,a.batteryMaterial,a.gold,a.dark])m.emissive.set(0x000000);if(inside){const m={cover:a.face,board:a.boardMaterial,battery:a.batteryMaterial,antenna:a.gold,speaker:a.dark}[selected];m?.emissive.set(0x123921);}},[inside,separation,selected]);
  return <div className="model-host" ref={host}>{failed&&<div className="fallback"><img src="/product.png" alt="Official UGREEN FineTrack Duo product photo"/><p>3D unavailable on this device. Product photo shown.</p></div>}</div>;
