@@ -28,7 +28,7 @@ Use the publishable key from Supabase, never a service-role or secret key. For a
 
 ## 3. Vercel and domains
 
-Import this repository into Vercel using the Next.js preset. `vercel.json` configures `npm run build` and the existing `out` static output. Add your presentation domain and `etcremote.seladevs.my` to the same project. Add the DNS record Vercel shows for each domain at your DNS provider. No DNS changes have been made by this implementation.
+Import this repository into Vercel using the Next.js preset. `vercel.json` configures `npm run build` and `.next` as the framework build directory. Vercel needs the manifests in `.next` to process this Next.js project, even though `output: 'export'` also generates an `out` folder for ordinary static hosting. Do not set Vercel's Output Directory to `out` with the Next.js preset: that causes `NEXT_NO_ROUTES_MANIFEST`. Add your presentation domain and `etcremote.seladevs.my` to the same project. Add the DNS record Vercel shows for each domain at your DNS provider. No DNS changes have been made by this implementation.
 
 The root page detects the remote hostname and shows the remote there. The presentation continues to appear on its own hostname. `/remote/` is also available on the presentation domain for testing. Both hosts must use the same Supabase project. No additional Vercel server function or persistent server is needed.
 
